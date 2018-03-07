@@ -14,13 +14,16 @@ class SlurmStatue(Enum):
     Running = 'R'
     Completing = 'CG'
     Completed = 'E'
+    Pending = 'PD'
 
 
 def slurm_statue2task_statue(s: SlurmStatue):
     return {
         SlurmStatue.Running: TaskStatue.Running,
-        SlurmStatue.Completing: TaskStatue.Running
-    }
+        SlurmStatue.Completing: TaskStatue.Running,
+        SlurmStatue.Completed: TaskStatue.Completed,
+        SlurmStatue.Pending: TaskStatue.Pending,
+    }[s]
 
 
 class TaskSlurmInfo:
@@ -86,7 +89,7 @@ class TaskSlurm(Task):
 
     def update_info(self, new_info: Dict[str, str]):
         return TaskSlurm(self.script_file, self.work_directory,
-                         self.statue, self.info,
+                         self.statue, new_info,
                          self.tid)
 
     def update_statue(self, new_statue: TaskStatue):
@@ -137,6 +140,10 @@ def sbatch(workdir: Directory, script_file: File, *args):
     return sid_from_submit(result[0])
 
 
+def find_sid(sid):
+    return lambda tinfo: tinfo.sid == sid
+
+
 def is_end(sid):
     if sid is None:
         return False
@@ -145,8 +152,10 @@ def is_end(sid):
               .count().to_list().to_blocking().first())
     return result[0] == 0
 
+
 def is_complete(sid):
     return is_end(sid)
+
 
 def dependency_args(t: TaskSlurm) -> TaskSlurm:
     deps = t.info.get('depens')
@@ -156,13 +165,20 @@ def dependency_args(t: TaskSlurm) -> TaskSlurm:
         return ['--dependency=afterok:'] + ':'.join(deps)
 
 
+def get_task_info(sid: int) -> TaskSlurmInfo:
+    result = squeue().filter(find_sid(sid)).to_list().to_blocking().first()
+    if len(result) == 0:
+        return None
+    return result[0]
+
+
 class Slurm(Cluster):
 
     @classmethod
     def submit(cls, t: TaskSlurm):
-        sid = cls.sbatch(t.work_directory, t.script_file, *dependency_args(t))
-        info = dict(t.info)
-        info['sid'] = sid
+        sid = sbatch(t.work_directory, t.script_file, *dependency_args(t))
+        info = get_task_info(sid).to_dict()
+        print(info)
         new_task = t.update_info(info)
         return cls.update(new_task)
 

@@ -32,6 +32,7 @@ class Task:
         self.work_directory = work_directory or Directory('.')
         self.cluster = cluster
         self.statue = statue or Statue.Unknown
+        self.info = info or {}
 
     def submit(self) -> 'Task':
         return self.cluster.submit(self)
