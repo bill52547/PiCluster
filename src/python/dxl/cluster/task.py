@@ -31,7 +31,7 @@ class Task:
         self.tid = tid
         self.work_directory = work_directory or Directory('.')
         self.cluster = cluster
-        self.statue = statue or Statue.Unknown
+        self.statue = statue or TaskStatue.Unknown
         self.info = info or {}
 
     def submit(self) -> 'Task':

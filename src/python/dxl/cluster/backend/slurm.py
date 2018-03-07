@@ -159,10 +159,10 @@ def is_complete(sid):
 
 def dependency_args(t: TaskSlurm) -> TaskSlurm:
     deps = t.info.get('depens')
-    if deps is None:
+    if deps is None or len(deps) == 0:
         return ()
     else:
-        return ['--dependency=afterok:'] + ':'.join(deps)
+        return ('--dependency=afterok:' + ':'.join(map(str, deps)),)
 
 
 def get_task_info(sid: int) -> TaskSlurmInfo:
@@ -177,8 +177,9 @@ class Slurm(Cluster):
     @classmethod
     def submit(cls, t: TaskSlurm):
         sid = sbatch(t.work_directory, t.script_file, *dependency_args(t))
-        info = get_task_info(sid).to_dict()
-        print(info)
+        info = dict(t.info)
+        new_info = get_task_info(sid).to_dict()
+        info.update(new_info)
         new_task = t.update_info(info)
         return cls.update(new_task)
 

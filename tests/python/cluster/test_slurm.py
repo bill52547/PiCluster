@@ -12,7 +12,7 @@ value3 = ["             JOBID PARTITION     NAME     USER ST       TIME  NODES N
           "                400      main  test.sh hongxwing  R       4:41      1 NB408A-WS1    "]
 
 
-class TestSlurm(unittest.TestCase):
+class TestSlurmHelperFunctions(unittest.TestCase):
     def setUp(self):
         pass
 
@@ -25,8 +25,7 @@ class TestSlurm(unittest.TestCase):
         d = Directory('test', mfs)
         s = File('test/run.sh', mfs)
         sid = slurm.sbatch(d, s)
-        _apply_command.assert_called_with(
-            "cd test && sbatch test/run.sh")
+        _apply_command.assert_called_with("cd test && sbatch test/run.sh")
 
     @patch('dxl.cluster.backend.slurm._apply_command', return_value=value2)
     def test_squeue(self, _apply_command):
@@ -48,3 +47,17 @@ class TestSlurm(unittest.TestCase):
     def test_sid_for_submit(self):
         msg = 'Submitted batch job 327'
         self.assertEqual(slurm.sid_from_submit(msg), 327)
+
+
+class TestSlurm(unittest.TestCase):
+    def test_dependency_args(self):
+        mfs = MemoryFS()
+        info = {'sid': 117929, 'partition': 'gpu', 'command': 'run.sh', 'usr': 'hongxwin',
+                'statue': 'PD', 'run_time': '0:00', 'nb_nodes': 1,
+                'node_list': '(None)', 'depens': [117928]}
+        t = slurm.TaskSlurm(File('test/run.sh', mfs),
+                            Directory('test', mfs),
+                            info=info)
+        print(slurm.dependency_args(t))
+        self.assertEqual(slurm.dependency_args(t),
+                         ('--dependency=afterok:117928',))
