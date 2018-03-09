@@ -133,8 +133,11 @@ def squeue() -> 'Observable[TaskSlurmInfo]':
 
 
 def sbatch(workdir: Directory, script_file: File, *args):
-    cmd = 'cd {dir} && sbatch {file}'.format(dir=workdir.system_path(),
-                                             args=' '.join(args),
+    sargs = ' '.join(args)
+    if sargs != '' and (not sargs.endswith(' ')):
+        sargs += ' '
+    cmd = 'cd {dir} && sbatch {args}{file}'.format(dir=workdir.system_path(),
+                                             args=sargs,
                                              file=script_file.system_path())
     result = _apply_command(cmd)
     return sid_from_submit(result[0])
@@ -176,7 +179,7 @@ class Slurm(Cluster):
 
     @classmethod
     def submit(cls, t: TaskSlurm):
-        sid = sbatch(t.work_directory, t.script_file, *dependency_args(t))
+        sid = sbatch(t.work_directory, t.script_file, *(dependency_args(t)))
         info = dict(t.info)
         new_info = get_task_info(sid).to_dict()
         info.update(new_info)

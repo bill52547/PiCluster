@@ -27,6 +27,7 @@ class TestSlurmHelperFunctions(unittest.TestCase):
         sid = slurm.sbatch(d, s)
         _apply_command.assert_called_with("cd test && sbatch test/run.sh")
 
+
     @patch('dxl.cluster.backend.slurm._apply_command', return_value=value2)
     def test_squeue(self, _apply_command):
         tasks_gathered = slurm.squeue().to_list().to_blocking().first()
@@ -48,7 +49,16 @@ class TestSlurmHelperFunctions(unittest.TestCase):
         msg = 'Submitted batch job 327'
         self.assertEqual(slurm.sid_from_submit(msg), 327)
 
-
+    @patch('dxl.cluster.backend.slurm._apply_command', return_value=['Submitted batch job 117909'])
+    def test_sbatch_with_depens(self, _apply_command):
+        mfs = MemoryFS()
+        info = {'depens': [117927, 117928]}
+        t = slurm.TaskSlurm(File('test/run.sh', mfs),
+                            Directory('test', mfs),
+                            info=info)
+        sid = slurm.sbatch(t.work_directory, t.script_file, *(slurm.dependency_args(t)))
+        _apply_command.assert_called_with(
+            "cd test && sbatch --dependency=afterok:117927:117928 test/run.sh")
 class TestSlurm(unittest.TestCase):
     def test_dependency_args(self):
         mfs = MemoryFS()
@@ -61,3 +71,5 @@ class TestSlurm(unittest.TestCase):
         print(slurm.dependency_args(t))
         self.assertEqual(slurm.dependency_args(t),
                          ('--dependency=afterok:117928',))
+
+    
