@@ -70,6 +70,5 @@ class TestSlurm(unittest.TestCase):
         t = slurm.TaskSlurm(File('test/run.sh', mfs),
                             Directory('test', mfs),
                             info=info)
-        print(slurm.dependency_args(t))
         self.assertEqual(slurm.dependency_args(t),
                          ('--dependency=afterok:117928',))
