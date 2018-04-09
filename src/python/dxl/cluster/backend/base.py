@@ -1,6 +1,6 @@
 class Cluster:
     def update(self, task: 'Task') -> 'Task':
-        pass
+        raise NotImplementedError
 
     def submit(self, task: 'Task') -> 'Task':
-        pass
+        raise NotImplementedError
