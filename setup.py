@@ -1,12 +1,13 @@
 from setuptools import setup, find_packages
 setup(name='dxl-cluster',
-      version='0.0.2',
+      version='0.0.3',
       description='Cluster utility library.',
       url='https://github.com/Hong-Xiang/dxcluster',
       author='Hong Xiang',
       author_email='hx.hongxiang@gmail.com',
       license='MIT',
-      packages=['dxl.cluster', 'dxl.cluster.backend'],
+      namespace_package=['dxl'],
+      packages=find_packages('src/python'),
       package_dir={'': 'src/python'},
       install_requires=[
           'click',
