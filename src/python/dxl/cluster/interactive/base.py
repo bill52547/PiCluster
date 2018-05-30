@@ -19,8 +19,8 @@ import json
 from enum import Enum
 from dxpy.file_system.path import Path
 from dxpy.time.timestamps import TaskStamp
-from dxpy.time.utils import strf, strp, now
-from dxpy.task.database import check_json
+from dxpy.time.utils import strf, strp
+from ..database.base import check_json
 
 
 class State(Enum):
@@ -158,21 +158,5 @@ class Task:
         return id(self)
 
 
-def submit(task):
-    task = Task.from_json(task.to_json())
-    task.state = State.Pending
-    return task
 
 
-def start(task):
-    task = Task.from_json(task.to_json())
-    task.start = now()
-    task.state = State.Runing
-    return task
-
-
-def complete(task):
-    task = Task.from_json(task.to_json())
-    task.end = now()
-    task.state = State.Complete
-    return task

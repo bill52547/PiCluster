@@ -5,7 +5,7 @@ _default = {
     'path': str(Path(os.environ.get('PATH_DATABASE')) / 'taskdb.db'),
     'name': 'task',
     'names': 'tasks',
-    'use_web_api': False,
+    'use_web_api': True,
     'echo': False,
     'default_state': 'BeforeSubmit',
 

@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 
 from dxpy.time.utils import now
 
-from .config import config as c
+from ..config import config as c
 
 
 
@@ -67,7 +67,7 @@ class TaskDB(Base):
             time_create = now()
         self.time_create = time_create
         if state is None:
-            from .config import config as c
+            from ..config import config as c
             state = c['default_state']
         self.state = state
         self.worker = worker
