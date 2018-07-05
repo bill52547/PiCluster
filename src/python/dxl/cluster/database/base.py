@@ -34,6 +34,7 @@ class DBprocess:
             'type': task.ttype, 
             'workdir': task.workdir,
             'dependency': json.loads(task.dependency),
+            'father': json.loads(task.father),
             'time_stamp': {
                 'create': strf(task.time_create),
                 'start': strf(task.time_start),
@@ -53,6 +54,7 @@ class DBprocess:
                   worker=dct['worker'],
                   ttype=dct['type'],
                   dependency=json.dumps(dct['dependency']),
+                  father=json.dumps(dct['father']),
                   time_create=strp(dct['time_stamp']['create']),
                   is_root=dct['is_root'])
 
@@ -121,6 +123,7 @@ class DBprocess:
         taskdb.workdir = dct['workdir']
         taskdb.ttype = dct['type']
         taskdb.dependency = json.dumps(dct['dependency'])
+        taskdb.father = json.dumps(dct['father'])
         taskdb.time_create = strp(dct['time_stamp']['create'])
         taskdb.time_start = strp(dct['time_stamp']['start'])
         taskdb.time_end = strp(dct['time_stamp']['end'])
@@ -156,6 +159,7 @@ def check_json(s, is_with_id=False):
     check_key(dct, 'type', str)
     check_key(dct, 'workdir', str)
     check_key(dct, 'dependency', list)
+    check_key(dct, 'father', list)
 
 
     

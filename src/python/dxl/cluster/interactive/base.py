@@ -28,6 +28,7 @@ class State(Enum):
     Pending = 1
     Runing = 2
     Complete = 3
+    Failed = 4
 
 
 class Worker(Enum):
@@ -52,6 +53,7 @@ class Task:
                  desc='',
                  workdir='.',
                  worker=None,
+                 father=None,
                  ttype=None,
                  state=None,
                  time_stamp=None,
@@ -80,6 +82,9 @@ class Task:
         if data is None:
             data = {}
         self.data = data
+        if father is None:
+            father = []
+        self.father = father
 
     @property
     def is_pending(self):
@@ -97,12 +102,23 @@ class Task:
     def is_complete(self):
         return self.state == State.Complete
 
+    @property
+    def is_failes(self):
+        return self.state == State.Failed
+
     def command(self, generate_func=None) -> str:
         if generate_func is None:
             pass
 
     def to_json(self):
         return json.dumps(self.serialization(self))
+    
+    def replace_dependency(self,sid1,sid2):
+        sids = self.dependency
+        for i in range (0,len(sids)):
+            if sids[i] == sid1:
+                sids[i] = sid2
+        self.dependency = sids
 
     @classmethod
     def from_json(cls, s):
@@ -120,13 +136,14 @@ class Task:
                     'type': obj.type.name,
                     'state': obj.state.name,
                     'dependency': obj.dependency,
+                    'father': obj.father,
                     'time_stamp': {
                         'create': strf(obj.time_stamp.create),
                         'start': strf(obj.time_stamp.start),
                         'end': strf(obj.time_stamp.end)
                     },
                     'is_root': obj.is_root,
-                    'data': obj.data, }
+                    'data': obj.data }
         raise TypeError(repr(obj) + " is not JSON serializable")
 
     @classmethod
@@ -138,6 +155,7 @@ class Task:
                         worker=Worker[dct['worker']],
                         ttype=Type[dct['type']],
                         state=State[dct['state']],
+                        father=dct['father'],
                         time_stamp=TaskStamp(
                             create=strp(dct['time_stamp']['create']),
                             start=strp(dct['time_stamp']['start']),

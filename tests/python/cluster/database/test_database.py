@@ -34,6 +34,6 @@ class TestDatabase(unittest.TestCase):
         base.DBprocess.update(indata)
         data = base.DBprocess.read(tid)
         result1 = json.loads(data) 
-        assert result1 == {'__task__': True, 'id': 1, 'desc': 'a new recon task', 'data': {'filename': 'new.h5'}, 'worker': '1', 'type': 'float', 'workdir': '/home/twj2417/Destop', 'dependency': ['task1', 'task2'], 'time_stamp': {'create': '2018-05-24 11:55:41.600000', 'start': '2018-05-24 11:56:12.300000', 'end': '2018-05-26 11:59:23.600000'}, 'state': 'submit', 'is_root': False}
+        assert result1 == {'__task__': True, 'id': 1, 'desc': 'a new recon task', 'data': {'filename': 'new.h5'}, 'worker': '1', 'type': 'float', 'workdir': '/home/twj2417/Destop', 'dependency': ['task1', 'task2'], 'father': [1],'time_stamp': {'create': '2018-05-24 11:55:41.600000', 'start': '2018-05-24 11:56:12.300000', 'end': '2018-05-26 11:59:23.600000'}, 'state': 'submit', 'is_root': False}
         base.DBprocess.delete(tid)
 

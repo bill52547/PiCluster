@@ -8,14 +8,11 @@ class DemonService:
     def cycle(self):
         g = Graph(self.get_nodes(),self.get_depens())
         g.mark_complete()
-        print(g.nodes())
         tasks = g.all_runable()
-        print(tasks)
         tasks_to_submit = (web.Request().read_all().filter(lambda t:t.id in tasks)
               .filter(lambda t:t.is_before_submit).to_list()
               .subscribe_on(rx.concurrency.ThreadPoolScheduler())
               .to_blocking().first())
-        print(len(tasks_to_submit))
         for i in tasks_to_submit:
             task_submit = web.submit(i)
 
