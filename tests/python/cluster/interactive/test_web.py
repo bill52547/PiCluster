@@ -13,6 +13,7 @@ task = base.Task( desc='test', workdir='/tmp/test',
                       ttype=base.Type.Regular,
                       state=base.State.Pending,
                       dependency=None,
+                      father=None,
                       time_stamp=TaskStamp(create=strp(
                           "2017-09-22 12:57:44.036185")),
                       data={'sample': 42},

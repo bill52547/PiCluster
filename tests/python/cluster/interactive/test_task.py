@@ -11,6 +11,7 @@ class Testtask(unittest.TestCase):
                       worker=base.Worker.MultiThreading,
                       ttype=base.Type.Regular,
                       dependency=[1, 2, 3],
+                      father=[1],
                       time_stamp=TaskStamp(create=strp(
                           "2017-09-22 12:57:44.036185")),
                       data={'sample': 42},
@@ -18,6 +19,7 @@ class Testtask(unittest.TestCase):
         s = t.to_json()
         dct = json.loads(s)
         self.assertEqual(dct['id'], 10)
+        self.assertEqual(dct['father'],[1])
         self.assertEqual(dct['desc'], 'test')
         self.assertEqual(dct['dependency'], [1, 2, 3])
         self.assertEqual(dct['data'], {'sample': 42})
@@ -38,6 +40,7 @@ class Testtask(unittest.TestCase):
             'worker': 'Slurm',
             'type': 'Script',
             'dependency': [1, 2, 3],
+            'father':[1],
             'data': {'sample': 42},
             'is_root': True,
             'time_stamp': {
@@ -54,8 +57,32 @@ class Testtask(unittest.TestCase):
         self.assertEqual(t.worker, base.Worker.Slurm)
         self.assertEqual(t.type, base.Type.Script)
         self.assertEqual(t.dependency, [1, 2, 3])
+        self.assertEqual(t.father,[1])
         self.assertEqual(t.data, {'sample': 42})
         self.assertEqual(t.is_root, True)
         self.assertEqual(t.time_stamp.create, strp(
             "2017-09-22 12:57:44.036185"))
         self.assertEqual(t.state, base.State.BeforeSubmit)
+
+    def test_replce_dependency(self):
+        dct = {
+            '__task__': True,
+            'id': 10,
+            'desc': 'test',
+            'workdir': '/tmp/test',
+            'worker': 'Slurm',
+            'type': 'Script',
+            'dependency': [1, 2, 3],
+            'father':[1],
+            'data': {'sample': 42},
+            'is_root': True,
+            'time_stamp': {
+                'create': "2017-09-22 12:57:44.036185",
+                'start': None,
+                'end': None
+            },
+            'state': 'BeforeSubmit'
+        }
+        t = base.Task.from_json(json.dumps(dct))
+        t.replace_dependency(2,4)
+        assert t.dependency == [1,4,3]

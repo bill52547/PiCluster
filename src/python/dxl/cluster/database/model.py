@@ -58,9 +58,10 @@ class TaskDB(Base):
     ttype = Column(String)
     workdir = Column(String)
     worker = Column(String)
+    father = Column(String)
     dependency = Column(String)
 
-    def __init__(self, desc, data, state=None, workdir=None, worker=None, ttype=None, dependency=None, time_create=None, time_start=None, time_end=None, is_root=True):
+    def __init__(self, desc, data, state=None, workdir=None, worker=None, ttype=None, dependency=None, father=None, time_create=None, time_start=None, time_end=None, is_root=True):
         self.desc = desc
         self.data = data
         if time_create is None:
@@ -74,6 +75,7 @@ class TaskDB(Base):
         self.workdir = workdir
         self.ttype = ttype
         self.dependency = dependency
+        self.father = father
         self.is_root = is_root
 
     def __repr__(self):

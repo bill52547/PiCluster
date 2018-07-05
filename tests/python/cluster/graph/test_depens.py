@@ -6,11 +6,11 @@ from dxl.cluster.taskgraph.depens import DepensGraph
 
 class TestDepensGraph(unittest.TestCase):
     def test_init(self):
-        g = DepensGraph([1, 2, 3], [None, 1, 4])
+        g = DepensGraph([1, 2, 3], [None, 1, 1])
         self.assertEqual(list(g.g.nodes()), [1, 2, 3])
         self.assertEqual(list(g.g.successors(1)), [])
         self.assertEqual(list(g.g.successors(2)), [1])
-        self.assertEqual(list(g.g.successors(3)), [])
+        self.assertEqual(list(g.g.successors(3)), [1])
 
     def test_init_2(self):
         g = DepensGraph([], [])
