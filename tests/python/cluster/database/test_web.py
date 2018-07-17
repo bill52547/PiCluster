@@ -15,6 +15,7 @@ class TestWeb(unittest.TestCase):
         indata = json.dumps(data)
         result = requests.post(self.tasks_url(),{'task':indata}).json()
         self.tid = result['id']
+        print(self.tid)
 
 
     def tearDown(self):

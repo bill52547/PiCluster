@@ -1,22 +1,26 @@
 import re
 from enum import Enum
 from typing import Dict, Iterable
-
+import numpy as np
 import rx
 
-from dxl.fs import Directory, File
+from dxpy.filesystem import Directory, File
 
 import json
 
 from ..interactive.base import Task, State,Type
+from ..interactive import web
 from .base import Cluster
+#from .forcluster import scancel,sbatch,squeue
 
+#filepath = '/home/twj2417/Desktop/backend.npy'
 
 class SlurmStatue(Enum):
     Running = 'R'
     Completing = 'CG'
     Completed = 'E'
     Pending = 'PD'
+    Failed = 'F'
 
 
 def slurm_statue2task_statue(s: SlurmStatue):
@@ -25,6 +29,7 @@ def slurm_statue2task_statue(s: SlurmStatue):
         SlurmStatue.Completing: State.Running,
         SlurmStatue.Completed: State.Complete,
         SlurmStatue.Pending: State.Pending,
+        SlurmStatue.Failed: State.Failed
     }[s]
 
 
@@ -78,13 +83,13 @@ class TaskSlurmInfo:
 
 
 class TaskSlurm(Task):
-    def __init__(self, tid: int=None,desc=None,work_directory=None,worker='Slurm',father=None,
-                     ttype=Type.Script,statue=None,time_stamp=None,dependency=None,is_root=True,
-                     data=None,script_file:File,info:TaskSlurmInfo):
+    def __init__(self,script_file:File,info:TaskSlurmInfo,tid=None,desc=None,
+        work_directory=None,father=None,statue=None,time_stamp=None,
+        dependency=None,is_root=True,data=None,worker='Slurm',ttype=Type.Script):
         self.script_file = script_file
         self.info = info   
-        data['script_file']= self.script_file.to_serializable()
-        data['info'] = self.info.to_dict()
+        #data['script_file']= self.script_file.to_serializable()
+        #sdata['info'] = self.info.to_dict()
         # data = json.dumps(datainfo)
         super().__init__(tid=tid,desc=desc,workdir=work_directory, worker=worker,father=father,ttype=ttype,
                          state=statue, time_stamp=time_stamp,dependency=dependency,is_root=is_root,data=data)
@@ -105,10 +110,10 @@ class TaskSlurm(Task):
                  ttype=self.ttype,statue=self.state,time_stamp=self.time_stamp,dependency=self.dependency,
                  is_root=self.is_root,data=self.data,script_file=self.script_file, info=new_info)
 
-    def update_statue(self, new_statue: State):
-        return TaskSlurm(tid=self.id,desc=self.desc,work_directory=self.workdir,worker=self.worker,father=self.father,
-                 ttype=self.ttype,statue=new_statue,time_stamp=self.time_stamp,dependency=self.dependency,
-                 is_root=self.is_root,data=self.data,script_file=self.script_file, info=self.info)
+    # def update_statue(self, new_statue: State):
+    #     return TaskSlurm(tid=self.id,desc=self.desc,work_directory=self.workdir,worker=self.worker,father=self.father,
+    #              ttype=self.ttype,statue=new_statue,time_stamp=self.time_stamp,dependency=self.dependency,
+    #              is_root=self.is_root,data=self.data,script_file=self.script_file, info=self.info)
 
 
 def _apply_command(command) -> Iterable[str]:
@@ -162,12 +167,12 @@ def scancel(sid):
     cmd = 'scancel {sid}'.format(sid=sid)
     _apply_command(cmd)
 
-# def get_info(sid):
-#     if sid is None:
-#         return False
-#     cmd = 'scontrol show job {tid}'.format(sid=sid)
-#     result = _apply_command(cmd)   #字符串需解析
-#     return result
+def get_info(sid):
+    if sid is None:
+        return False
+    cmd = 'scontrol show job {tid}'.format(sid=sid)
+    result = _apply_command(cmd)   #字符串需解析
+    return result
 
 def find_sid(sid):
     return lambda tinfo: tinfo.sid == sid
@@ -179,12 +184,11 @@ def is_end(sid):
     result = (squeue()
               .filter(lambda tinfo: tinfo.sid == sid)
               .count().to_list().to_blocking().first())
-    return result[0] == 0
+    return result[0] == SlurmStatue.Completed
 
 
 def is_complete(sid):
     return is_end(sid)
-
 
 def dependency_args(t: TaskSlurm) -> TaskSlurm:
     deps = t.dependency
@@ -209,10 +213,15 @@ class Slurm(Cluster):
         new_info = get_task_info(sid).to_dict()
         info.update(new_info)
         new_task = t.update_info(info)
-        return cls.update(new_task)
+        cls.update(new_task)
+        
+
 
     @classmethod
-    def update(self, t: TaskSlurm):
+    def update(cls, t: TaskSlurm):
+        """
+        从slurm中读取状态并返回给task系统
+        """
         if t.sid is None:
             return t
         else:
@@ -223,21 +232,25 @@ class Slurm(Cluster):
                 new_info.statue = SlurmStatue.Completed
             else:
                 new_info = new_info[0]
-        return (t.update_info(new_info.to_dict())
-                .update_statue(slurm_statue2task_statue(new_info.statue)))
-    
+        t.update_info(new_info.to_dict()).update_state(slurm_statue2task_statue(new_info.statue))
+        web.Request().update(t)
+
+
     @classmethod
-    def cancel(self, t: TaskSlurm):
+    def cancel(cls, t: TaskSlurm):
+        """
+        取消任务
+        """
         scancel(t.sid)
         #return t
 
-    @classmethod
-    def is_failure(self,t:TaskSlurm):
-        result = get_task_info(t.sid)
-        if result[3] == failure:
-            state = State.Failed
-            return t.update_statue(state)
-        else:
-            return t
+    # @classmethod
+    # def is_failure(cls,t:TaskSlurm):
+    #     result = get_task_info(t.sid)
+    #     if result[3] == failure:
+    #         state = State.Failed
+    #         return t.update_statue(state)
+    #     else:
+    #         return t
 
 

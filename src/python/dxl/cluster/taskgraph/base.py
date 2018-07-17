@@ -13,7 +13,7 @@ class Graph(DepensGraph):
         
     def mark_complete(self):
         node = self.nodes()
-        node = (rx.Observable.from_(node).filter(lambda t:fortest.Request().read(t).state==base.State.Complete).to_list()
+        node = (rx.Observable.from_(node).filter(lambda t:web.Request().read(t).state==base.State.Complete).to_list()
               .subscribe_on(rx.concurrency.ThreadPoolScheduler())
               .to_blocking().first())
         for i in node:

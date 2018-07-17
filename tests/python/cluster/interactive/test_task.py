@@ -86,3 +86,26 @@ class Testtask(unittest.TestCase):
         t = base.Task.from_json(json.dumps(dct))
         t.replace_dependency(2,4)
         assert t.dependency == [1,4,3]
+
+    def test_update_state(self):
+        dct = {
+            '__task__': True,
+            'id': 10,
+            'desc': 'test',
+            'workdir': '/tmp/test',
+            'worker': 'Slurm',
+            'type': 'Script',
+            'dependency': [1, 2, 3],
+            'father':[1],
+            'data': {'sample': 42},
+            'is_root': True,
+            'time_stamp': {
+                'create': "2017-09-22 12:57:44.036185",
+                'start': None,
+                'end': None
+            },
+            'state': 'BeforeSubmit'
+        }
+        t = base.Task.from_json(json.dumps(dct))
+        t.update_state(base.State.Pending)
+        assert t.state == base.State.Pending

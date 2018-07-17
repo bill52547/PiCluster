@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, Mock
 from dxl.cluster.backend import slurm
-from dxl.fs import Directory, File
+from dxpy.filesystem import Directory, File
 from fs.memoryfs import MemoryFS
 
 value2 = ["             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)             \n",

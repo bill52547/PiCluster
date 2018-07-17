@@ -8,16 +8,18 @@ import rx
 from dxl.cluster.config import config as c
 from dxl.cluster.database.model import Database
 
-task = base.Task( desc='test', workdir='/tmp/test',
-                      worker=base.Worker.MultiThreading,
-                      ttype=base.Type.Regular,
-                      state=base.State.Pending,
-                      dependency=None,
-                      father=None,
-                      time_stamp=TaskStamp(create=strp(
-                          "2017-09-22 12:57:44.036185")),
-                      data={'sample': 42},
-                      is_root=True)
+# task = base.Task( desc='test', workdir='/tmp/test',
+#                       worker=base.Worker.MultiThreading,
+#                       ttype=base.Type.Regular,
+#                       state=base.State.Pending,
+#                       dependency=None,
+#                       father=None,
+#                       time_stamp=TaskStamp(create=strp(
+#                           "2017-09-22 12:57:44.036185")),
+#                       data={'sample': 42},
+#                       is_root=True)
+
+task = base.Task(desc='test',workdir='tmp/test')
 
 class Testweb(unittest.TestCase):     
     def setUp(self):
@@ -34,7 +36,7 @@ class Testweb(unittest.TestCase):
         result = (web.Request().read_all().to_list()
               .subscribe_on(rx.concurrency.ThreadPoolScheduler())
               .to_blocking().first())
-        assert result[0].state==base.State.Pending
+        assert result[0].state==base.State.BeforeSubmit
 
     def test_submit(self):
         t = web.submit(self.t1)
