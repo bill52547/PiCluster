@@ -103,7 +103,7 @@ class Task:
         return self.state == State.Complete
 
     @property
-    def is_failes(self):
+    def is_fail(self):
         return self.state == State.Failed
 
     def command(self, generate_func=None) -> str:
@@ -119,6 +119,9 @@ class Task:
             if sids[i] == sid1:
                 sids[i] = sid2
         self.dependency = sids
+
+    def update_state(self,new_statue):
+        self.state = new_statue
 
     @classmethod
     def from_json(cls, s):

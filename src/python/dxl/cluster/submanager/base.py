@@ -31,13 +31,13 @@ def resubmit_failure(task:Task):
             tasks[j].replace_dependency(old_id,tasknew.id)
             web.Request().update(tasks[j])
         
-class Service:
-    def cycle(self,task):
-        scheduler = BlockingScheduler()
-        scheduler.add_job(resubmit_failure(task),'interval',seconds=5)
-        try:
-            resubmit_failure(task)
-            scheduler.start()
-        except (KeyboardInterrupt, SystemExit):
-            pass
+# class Service:
+#     def cycle(self,task):
+#         scheduler = BlockingScheduler()
+#         scheduler.add_job(resubmit_failure(task),'interval',seconds=5)
+#         try:
+#             resubmit_failure(task)
+#             scheduler.start()
+#         except (KeyboardInterrupt, SystemExit):
+#             pass
 
