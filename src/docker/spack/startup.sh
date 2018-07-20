@@ -1,0 +1,3 @@
+#!/bin/bash
+echo Runing startup script...
+. $SPACK_ROOT/share/spack/setup-env.sh
