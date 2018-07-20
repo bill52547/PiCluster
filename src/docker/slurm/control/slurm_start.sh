@@ -1,1 +1,0 @@
-spack load slurm munge

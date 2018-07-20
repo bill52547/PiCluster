@@ -8,6 +8,6 @@ push :
 pull :
 	sudo docker pull $(repo)/$(name):latest
 run :
-	#sudo proxychains docker run -v $(SPACK_DEVELOP_ROOT):/opt/spack -it --rm $(repo)/$(name)
-	sudo docker run -v $(SPACK_DEVELOP_ROOT):/opt/spack -it --rm $(repo)/$(name)
+	sudo proxychains docker run -v $(SPACK_DEVELOP_ROOT):/opt/spack -it --rm $(repo)/$(name)
+	#sudo docker run -v $(SPACK_DEVELOP_ROOT):/opt/spack -it --rm $(repo)/$(name)
 
