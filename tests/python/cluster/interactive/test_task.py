@@ -48,7 +48,9 @@ class Testtask(unittest.TestCase):
                 'start': None,
                 'end': None
             },
-            'state': 'BeforeSubmit'
+            'state': 'BeforeSubmit',
+            'script_file': ['file1.txt','file2.csv'],
+            'info':['sbatch','scancel']
         }
         t = base.Task.from_json(json.dumps(dct))
         self.assertEqual(t.id, 10)
@@ -63,6 +65,9 @@ class Testtask(unittest.TestCase):
         self.assertEqual(t.time_stamp.create, strp(
             "2017-09-22 12:57:44.036185"))
         self.assertEqual(t.state, base.State.BeforeSubmit)
+        self.assertEqual(t.script_file,['file1.txt','file2.csv'])
+        self.assertEqual(t.info,['sbatch','scancel'])
+
 
     def test_replce_dependency(self):
         dct = {
@@ -81,7 +86,9 @@ class Testtask(unittest.TestCase):
                 'start': None,
                 'end': None
             },
-            'state': 'BeforeSubmit'
+            'state': 'BeforeSubmit',
+            'script_file': [],
+            'info': []
         }
         t = base.Task.from_json(json.dumps(dct))
         t.replace_dependency(2,4)
@@ -104,8 +111,11 @@ class Testtask(unittest.TestCase):
                 'start': None,
                 'end': None
             },
-            'state': 'BeforeSubmit'
+            'state': 'BeforeSubmit',
+            'script_file':['file3.pdf'],
+            'info': []
         }
         t = base.Task.from_json(json.dumps(dct))
         t.update_state(base.State.Pending)
         assert t.state == base.State.Pending
+        assert t.script_file == ['file3.pdf']

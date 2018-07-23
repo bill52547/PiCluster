@@ -59,7 +59,9 @@ class Task:
                  time_stamp=None,
                  dependency=None,
                  is_root=True,
-                 data=None):
+                 data=None,
+                 script_file=None,
+                 info=None):
         self.id = tid
         self.desc = desc
         self.workdir = Path(workdir).abs
@@ -85,6 +87,14 @@ class Task:
         if father is None:
             father = []
         self.father = father
+        if script_file is None:
+            script_file = []
+        self.script_file = script_file
+        if info is None:
+            info = {}
+        self.info=info
+
+        
 
     @property
     def is_pending(self):
@@ -122,6 +132,10 @@ class Task:
 
     def update_state(self,new_statue):
         self.state = new_statue
+        return self
+
+    def update_info(self, new_info):
+        self.info = new_info
 
     @classmethod
     def from_json(cls, s):
@@ -146,7 +160,9 @@ class Task:
                         'end': strf(obj.time_stamp.end)
                     },
                     'is_root': obj.is_root,
-                    'data': obj.data }
+                    'data': obj.data,
+                    'script_file': obj.script_file,
+                    'info': obj.info }
         raise TypeError(repr(obj) + " is not JSON serializable")
 
     @classmethod
@@ -165,7 +181,9 @@ class Task:
                             end=strp(dct['time_stamp']['end'])),
                         dependency=dct['dependency'],
                         is_root=dct['is_root'],
-                        data=dct['data'])
+                        data=dct['data'],
+                        script_file=dct['script_file'],
+                        info=dct['info'])
         return dct
 
     def __str__(self):

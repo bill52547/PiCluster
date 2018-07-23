@@ -60,15 +60,16 @@ class TaskDB(Base):
     worker = Column(String)
     father = Column(String)
     dependency = Column(String)
+    script_file = Column(String)
+    info = Column(String)
 
-    def __init__(self, desc, data, state=None, workdir=None, worker=None, ttype=None, dependency=None, father=None, time_create=None, time_start=None, time_end=None, is_root=True):
+    def __init__(self, desc, data, state=None, workdir=None, worker=None, ttype=None, dependency=None, father=None, time_create=None, time_start=None, time_end=None, is_root=True, script_file=None, info=None):
         self.desc = desc
         self.data = data
         if time_create is None:
             time_create = now()
         self.time_create = time_create
         if state is None:
-            from ..config import config as c
             state = c['default_state']
         self.state = state
         self.worker = worker
@@ -77,6 +78,8 @@ class TaskDB(Base):
         self.dependency = dependency
         self.father = father
         self.is_root = is_root
+        self.script_file = script_file
+        self.info = info
 
     def __repr__(self):
         return '<Task {:d}>'.format(self.id)

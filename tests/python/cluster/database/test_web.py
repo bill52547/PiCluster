@@ -15,7 +15,6 @@ class TestWeb(unittest.TestCase):
         indata = json.dumps(data)
         result = requests.post(self.tasks_url(),{'task':indata}).json()
         self.tid = result['id']
-        print(self.tid)
 
 
     def tearDown(self):
@@ -36,8 +35,9 @@ class TestWeb(unittest.TestCase):
         indata = json.dumps(inputs)
         result = requests.put(self.tasks_url(),{'task': indata})
         data = requests.get(self.task_url(tid)).text
-        result1 = json.loads(data) 
-        assert result1 == {'__task__': True, 'id': 1, 'desc': 'a new recon task', 'data': {'filename': 'new.h5'}, 'worker': '1', 'type': 'float', 'workdir': '/home/twj2417/Destop', 'dependency': ['task1', 'task2'], 'father': [1], 'time_stamp': {'create': '2018-05-24 11:55:41.600000', 'start': '2018-05-24 11:56:12.300000', 'end': '2018-05-26 11:59:23.600000'}, 'state': 'submit', 'is_root': False}
+        result1 = json.loads(data)
+        print(result1) 
+        assert result1 == {'__task__': True, 'id': 1, 'desc': 'a new recon task', 'data': {'filename': 'new.h5'}, 'worker': '1', 'type': 'float', 'workdir': '/home/twj2417/Destop', 'dependency': ['task1', 'task2'], 'father': [1], 'time_stamp': {'create': '2018-05-24 11:55:41.600000', 'start': '2018-05-24 11:56:12.300000', 'end': '2018-05-26 11:59:23.600000'}, 'state': 'submit', 'is_root': False,'script_file': ['file.exe'], 'info': {'job_id': 5826, 'partition': 'main', 'name': 'run.sh', 'user': 'root', 'status': 'PD', 'time': '0:00', 'nodes': 1, 'node_list': '(None)'}}
 
     def tasks_url(self):
         return 'http://localhost:23300/api/v0.2/tasks'

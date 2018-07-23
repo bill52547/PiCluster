@@ -11,12 +11,12 @@ class CycleService:
     def cycle(cls):
         backend_cycle()
         graph_cycle()
-        resubmit_cycle()
+        #resubmit_cycle()
 
     @classmethod
     def start(cls,cycle_intervel=None):
         scheduler = BlockingScheduler()
-        scheduler.add_job(cls.cycle,'interval',seconds=5)
+        scheduler.add_job(cls.cycle,'interval',seconds=10)
         try:
             cls.cycle()
             scheduler.start()
@@ -24,26 +24,44 @@ class CycleService:
             pass
 
 
-def resubmit_cycle():
-    """
-    失败任务再提交
-    """
-    failed_tasks = (web.Request().read_all().filter(lambda t:t.is_fail).to_list()
-          .subscribe_on(rx.concurrency.ThreadPoolScheduler())
-          .to_blocking().first())
-    for i in failed_tasks:
-        slurm.Slurm().submit(i)
+# def resubmit_cycle():
+#     """
+#     失败任务再提交
+#     """
+#     failed_tasks = (web.Request().read_all().filter(lambda t:t.is_fail).to_list()
+#           .subscribe_on(rx.concurrency.ThreadPoolScheduler())
+#           .to_blocking().first())
+#     for i in failed_tasks:
+#         if i.worker==base.worker.Slurm:
+#             slurm.Slurm().submit(i)
 
 
 def backend_cycle():
     """
-    后端查询任务状态
+    任务状态更新
     """
-    running_tasks = (web.Request().read_all().filter(lambda t:t.is_running or t.is_pending).to_list()
-            .subscribe_on(rx.concurrency.ThreadPoolScheduler())
-            .to_blocking().first())
-    for i in running_tasks:
-        slurm.Slurm().update(i)
+    running_tasks = (web.Request().read_all()
+          .filter(lambda t:t.is_running or t.is_pending)
+          .map(lambda t:t.update_state(base.State.Complete)))
+    task_list = running_tasks.to_list().to_blocking().first()
+    if task_list==[None]:
+        return running_tasks
+    else:
+        for i in task_list:
+            if i.worker==base.Worker.Slurm:
+                slurm.Slurm().update(i)
+                if i.state!=base.State.Complete:
+                    (running_tasks
+                    .filter(lambda t:t.id in i.father)
+                    .map(base.Task().update_state(i.state))
+                    .map(web.Request().update))
+            web.Request().update(i)
+
+    
+    # root_tasks = (running_tasks.filter(lambda t:t.is_root=True).to_list()
+    #         .subscribe_on(rx.concurrency.ThreadPoolScheduler())
+    #         .to_blocking().first())
+    
         
 
 def graph_cycle():

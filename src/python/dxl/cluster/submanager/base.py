@@ -6,6 +6,12 @@ import rx
 def find_sub(task):
     return (web.Request().read_all().filter(lambda t:t.father==[task.id]))
 
+# def find_unroot():
+#     return (web.Request().filter(lambda t:t.is_root == False))
+
+# def find_sub(task):
+#     return task.dependency
+
 def complete_rate(task):
     subs = find_sub(task)
     num_subs = len(subs.to_list()
@@ -31,13 +37,6 @@ def resubmit_failure(task:Task):
             tasks[j].replace_dependency(old_id,tasknew.id)
             web.Request().update(tasks[j])
         
-# class Service:
-#     def cycle(self,task):
-#         scheduler = BlockingScheduler()
-#         scheduler.add_job(resubmit_failure(task),'interval',seconds=5)
-#         try:
-#             resubmit_failure(task)
-#             scheduler.start()
-#         except (KeyboardInterrupt, SystemExit):
-#             pass
 
+
+    

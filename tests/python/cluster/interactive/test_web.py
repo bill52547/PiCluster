@@ -7,6 +7,7 @@ from dxpy.time.utils import strp
 import rx
 from dxl.cluster.config import config as c
 from dxl.cluster.database.model import Database
+from dxl.cluster.backend import slurm
 
 # task = base.Task( desc='test', workdir='/tmp/test',
 #                       worker=base.Worker.MultiThreading,
@@ -19,7 +20,8 @@ from dxl.cluster.database.model import Database
 #                       data={'sample': 42},
 #                       is_root=True)
 
-task = base.Task(desc='test',workdir='tmp/test')
+#task = base.Task(desc='test',workdir='tmp/test',script_file=['run.sh'])
+task = slurm.TaskSlurm(['run.sh'],workdir='/mnt/gluster/twj/GATE/16_8.0/sub.0',desc='father',is_root=True,ttype=base.Type.Script)
 
 class Testweb(unittest.TestCase):     
     def setUp(self):
