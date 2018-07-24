@@ -11,3 +11,6 @@ class Cluster:
     
     def cancel(self, task: 'Task') -> 'Task':
         raise NotImplementedError
+
+    def is_failure(self,task:'Task') -> 'Bool':
+        raise NotImplementedError
