@@ -7,6 +7,10 @@ push :
 	sudo docker push $(repo)/$(name):latest
 pull :
 	sudo docker pull $(repo)/$(name):latest
-run :
+rel :
+	sudo docker run --network host -v $(SPACK_ROOT):/opt/spack -it --rm $(repo)/$(name)
+dev :
 	sudo docker run --network host -v $(SPACK_DEVELOP_ROOT):/opt/spack -it --rm $(repo)/$(name)
+test :
+	sudo docker run -v $(SPACK_DEVELOP_ROOT):/opt/spack -it --rm ubuntu:16.04
 
