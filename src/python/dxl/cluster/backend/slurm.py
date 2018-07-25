@@ -9,6 +9,7 @@ import requests
 from dxpy.filesystem import Directory, File
 
 import json
+import time
 
 from ..interactive.base import Task,State,Type,Worker
 from ..interactive import web
@@ -47,11 +48,11 @@ def slurm_statue2task_statue(s: SlurmStatue):
 
 
 class TaskSlurmInfo:
-    def __init__(self, partition: str, command: str, usr: str,
-                 statue: SlurmStatue,
-                 run_time: str,
-                 nb_nodes: int,
-                 node_list: Iterable[str],
+    def __init__(self, partition=None, command=None, usr=None,
+                 statue=None,
+                 run_time=None,
+                 nb_nodes=None,
+                 node_list=None,
                  sid=None):
         self.sid = sid
         if isinstance(self.sid, str):
@@ -59,26 +60,22 @@ class TaskSlurmInfo:
         self.partition = partition
         self.command = command
         self.usr = usr
-        if isinstance(statue, SlurmStatue):
+        if statue ==None:
+            self.statue = SlurmStatue('R')
+        elif isinstance(statue, SlurmStatue):
             self.statue = statue
         else:
             self.statue = SlurmStatue(statue)
         self.run_time = run_time
-        self.nb_nodes = int(nb_nodes)
+        if nb_nodes==None:
+            self.nb_nodes=0
+        else:
+            self.nb_nodes = int(nb_nodes)
         self.node_list = node_list
         #self.depens = depens
 
     @classmethod
-    # def parse_dict(cls, dct):
-    #     return cls(dct.get('sid'),
-    #                dct.get('partition'),
-    #                dct.get('command'),
-    #                dct.get('usr'),
-    #                dct.get('statue'),
-    #                dct.get('run_time'),
-    #                dct.get('nb_nodes'),
-    #                dct.get('node_list'),
-    #                dct.get('depens'))
+
     def parse_dict(cls, dct:str):
         return TaskSlurmInfo(dct['partition'],
                    dct['name'],
@@ -163,7 +160,7 @@ def scontrol(sid:int):
     result = requests.get(scontrol_url(sid)).json()
     return result
 
-def get_statue(sid):
+def get_statue(sid:int):
     if sid is None:
         return False
     state = scontrol(sid)['job_state']
@@ -195,49 +192,30 @@ class Slurm(Cluster):
     @classmethod
     def submit(cls, t: TaskSlurm):
         sid = sbatch(t.workdir, t.script_file[0])
-        new_info = get_task_info(sid) 
+        new_info = TaskSlurmInfo(sid = sid)
+        #new_info = get_task_info(sid) 
         new_task = t.update_info(new_info.to_dict())
-        t.update_state(slurm_statue2task_statue(new_info.statue))
-        web.Request().update(t)
-        return new_task
+        nt = new_task.update_state(State.Runing)
+        #nt=new_task.update_state(slurm_statue2task_statue(new_info.statue))
+        web.Request().update(nt)
+        return nt
         
 
-    # @classmethod
-    # def update(cls, t: TaskSlurm):
-    #     """
-    #     从slurm中读取状态并返回给task系统
-    #     """
-    #     if t.sid is None:
-    #         return False
-    #     else:
-    #         new_info = (squeue().filter(lambda tinfo: tinfo.sid == t.sid)
-    #                     .to_list().to_blocking().first())
-    #         if len(new_info) == 0:
-    #             new_info = TaskSlurmInfo.parse_dict(t.info)
-    #             new_info.statue = SlurmStatue.Completed
-    #             t.update_info(new_info.to_dict())
-    #             t.update_state(slurm_statue2task_statue(new_info.statue))
-    #         else:
-    #             new_info = new_info[0]
-    #             t.update_info(new_info.to_dict())
-    #             t.update_state(slurm_statue2task_statue(new_info.statue))
-    #             t.father.update_state(slurm_statue2task_statue(new_info.statue))
-    #             #web.Request().update(t)
     @classmethod
     def update(cls,t:TaskSlurm):
         if t.info['job_id'] is None:
-            return False
+            return t
         else:
             new_info = get_task_info(t.info['job_id'])
-            print(new_info)
             if new_info is not None: 
-                t.update_state(slurm_statue2task_statue(new_info.statue))
+                nt = t.update_state(slurm_statue2task_statue(new_info.statue))
             else:
-                state = scontrol(t.info['job_id'])['job_state']
-                print(state)
-                if state!='COMPLETED':
-                    t.update_state(State.Failed)
-            return t
+                state = get_statue(t.info['job_id'])
+                if state=='COMPLETED':
+                    nt = t.update_state(State.Complete)
+                else:
+                    nt = t.update_state(State.Failed)
+            return nt
 
 
     @classmethod

@@ -4,13 +4,14 @@ from ..interactive import web,base
 from ..backend import srf,slurm
 from ..submanager.base import resubmit_failure
 from apscheduler.schedulers.blocking import BlockingScheduler
+from ..submanager.base import complete_rate,fail_rate
 
 
 class CycleService:
     @classmethod
     def cycle(cls):
-        backend_cycle()
         graph_cycle()
+        backend_cycle()        
         #resubmit_cycle()
 
     @classmethod
@@ -24,45 +25,29 @@ class CycleService:
             pass
 
 
-# def resubmit_cycle():
-#     """
-#     失败任务再提交
-#     """
-#     failed_tasks = (web.Request().read_all().filter(lambda t:t.is_fail).to_list()
-#           .subscribe_on(rx.concurrency.ThreadPoolScheduler())
-#           .to_blocking().first())
-#     for i in failed_tasks:
-#         if i.worker==base.worker.Slurm:
-#             slurm.Slurm().submit(i)
-
-
 def backend_cycle():
     """
     任务状态更新
     """
     running_tasks = (web.Request().read_all()
           .filter(lambda t:t.is_running or t.is_pending)
-          .map(lambda t:t.update_state(base.State.Complete)))
-    task_list = running_tasks.to_list().to_blocking().first()
-    if task_list==[None]:
+          .to_list().to_blocking().first())
+    if running_tasks==[None]:
         return running_tasks
     else:
-        for i in task_list:
+        for i in running_tasks:
             if i.worker==base.Worker.Slurm:
-                slurm.Slurm().update(i)
-                if i.state!=base.State.Complete:
-                    (running_tasks
-                    .filter(lambda t:t.id in i.father)
-                    .map(base.Task().update_state(i.state))
-                    .map(web.Request().update))
-            web.Request().update(i)
-
-    
-    # root_tasks = (running_tasks.filter(lambda t:t.is_root=True).to_list()
-    #         .subscribe_on(rx.concurrency.ThreadPoolScheduler())
-    #         .to_blocking().first())
-    
-        
+                new_i=slurm.Slurm().update(i)
+            else:
+                if fail_rate(i)!=0:
+                    new_i = i.update_state(base.State.Failed)
+                else:
+                    if complete_rate(i)==1:
+                        new_i = i.update_state(base.State.Complete)
+                    else:
+                        new_i = i.update_state(base.State.Runing)
+            web.Request().update(new_i)                          
+       
 
 def graph_cycle():
     """
@@ -76,7 +61,16 @@ def graph_cycle():
               .subscribe_on(rx.concurrency.ThreadPoolScheduler())
               .to_blocking().first())
     for i in tasks_to_submit:
-        task_submit = slurm.Slurm().submit(i)
+        if i.worker==base.Worker.Slurm:
+            task_submit = slurm.Slurm().submit(i)
+        else:
+            task_submit = i.update_state(base.State.Runing)
+            web.Request().update(task_submit)
+    # tasks_to_submit = (web.Request().read_all().filter(lambda t:t.id in runable_tasks)
+    #           .filter(lambda t:t.is_before_submit))
+    # slurm_task = (tasks_to_submit.filter(lambda t:t.worker==base.Worker.Slurm)
+    #               .map(lambda t:slurm.Slurm().submit(t)).map(lambda t:slurm.Slurm().update(t)))
+    
 
 
 def get_graph_task():

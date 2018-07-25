@@ -94,8 +94,6 @@ class Task:
             info = {}
         self.info=info
 
-        
-
     @property
     def is_pending(self):
         return self.state == State.Pending
@@ -131,11 +129,34 @@ class Task:
         self.dependency = sids
 
     def update_state(self,new_statue):
-        self.state = new_statue
-        return self
-
+        return Task(tid=self.id,
+                 desc=self.desc,
+                 workdir=self.workdir,
+                 worker=self.worker,
+                 time_stamp=self.time_stamp,
+                 dependency=self.dependency,
+                 ttype=self.type,
+                 state=new_statue,
+                 is_root=self.is_root,
+                 data=self.data,
+                 father=self.father,
+                 script_file=self.script_file,
+                 info=self.info)
+    
     def update_info(self, new_info):
-        self.info = new_info
+        return Task(tid=self.id,
+                 desc=self.desc,
+                 workdir=self.workdir,
+                 worker=self.worker,
+                 time_stamp=self.time_stamp,
+                 dependency=self.dependency,
+                 ttype=self.type,
+                 state=self.state,
+                 is_root=self.is_root,
+                 data=self.data,
+                 father=self.father,
+                 script_file=self.script_file,
+                 info=new_info) 
 
     @classmethod
     def from_json(cls, s):
