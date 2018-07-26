@@ -11,7 +11,7 @@ from dxpy.filesystem import Directory, File
 import json
 import time
 
-from ..interactive.base import Task,State,Type,Worker
+from ..interactive.base import Task,State,Type,Worker,TaskInfo
 from ..interactive import web
 from .base import Cluster
 #from .forcluster import scancel,sbatch,squeue
@@ -46,6 +46,29 @@ def slurm_statue2task_statue(s: SlurmStatue):
         SlurmStatue.Failed: State.Failed
     }[s]
 
+class ScontrolStatue(Enum):
+    Pending = 'PENDING'
+    Running = 'RUNNING'
+    Suspended = 'SUSPENDED'
+    Complete = 'COMPLETED'
+    Failed = 'FAILED'
+    Canceled = 'CANCELLED'
+    Timeout = 'TIMEOUT'
+    NodeFailed = 'NODE_FAILED'
+
+
+def scontrol_statue2task_statue(s: ScontrolStatue):
+    scontrol2state_mapping = {
+        ScontrolStatue.Pending:State.Pending,
+        ScontrolStatue.Running: State.Runing,
+        ScontrolStatue.Suspended: State.Runing,
+        ScontrolStatue.Complete: State.Complete,        
+        ScontrolStatue.Failed: State.Failed,
+        ScontrolStatue.Canceled: State.Failed,
+        ScontrolStatue.Timeout: State.Failed,
+        ScontrolStatue.NodeFailed: State.Failed
+    }
+    return scontrol2state_mapping[ScontrolStatue(s)]
 
 class TaskSlurmInfo:
     def __init__(self, partition=None, command=None, usr=None,
@@ -116,23 +139,11 @@ class TaskSlurm(Task):
         return self.info.sid
 
     
-    # def update_info(self, new_info):
-    #     return TaskSlurm(tid=self.id,desc=self.desc,work_directory=self.workdir,worker=self.worker,father=self.father,
-    #              ttype=self.ttype,statue=self.state,time_stamp=self.time_stamp,dependency=self.dependency,
-    #              is_root=self.is_root,data=self.data,script_file=self.script_file, info=new_info)
-
     
 def sid_from_submit(s: str):
     return int(re.sub('\s+', ' ', s).strip().split(' ')[3])
 
 
-# def task_info_from_squeue(s: str):
-#     s = re.sub('\s+', ' ', s).strip()
-#     items = s.split()
-#     if not items[0].isdigit():
-#         return None
-#     else:
-#         return TaskSlurmInfo(*items)
 
 def squeue() -> 'Observable[TaskSlurmInfo]':
     infos = requests.get(squeue_url()).text
@@ -143,9 +154,6 @@ def squeue() -> 'Observable[TaskSlurmInfo]':
 
 
 def sbatch(workdir: Directory, args):
-    # sargs = ' '.join(args)
-    # if sargs != '' and (not sargs.endswith(' ')):
-    #     sargs += ' '
     result = requests.post(sbatch_url(args,workdir)).json()
     return result['job_id']
 
@@ -163,7 +171,7 @@ def scontrol(sid:int):
 def get_statue(sid:int):
     if sid is None:
         return False
-    state = scontrol(sid)['job_state']
+    state = scontrol_statue2task_statue(scontrol(sid)['job_state']) 
     return state
 
 def find_sid(sid):
@@ -192,11 +200,12 @@ class Slurm(Cluster):
     @classmethod
     def submit(cls, t: TaskSlurm):
         sid = sbatch(t.workdir, t.script_file[0])
-        new_info = TaskSlurmInfo(sid = sid)
-        #new_info = get_task_info(sid) 
+        slurm_info = get_task_info(sid)
+        new_info = TaskInfo(sid = sid,nb_nodes=slurm_info.nb_nodes,node_list=slurm_info.node_list) 
+        # new_task = t.update_info(new_info.to_dict())
         new_task = t.update_info(new_info.to_dict())
         nt = new_task.update_state(State.Runing)
-        #nt=new_task.update_state(slurm_statue2task_statue(new_info.statue))
+        # nt = nt.update_start()
         web.Request().update(nt)
         return nt
         
@@ -206,15 +215,8 @@ class Slurm(Cluster):
         if t.info['job_id'] is None:
             return t
         else:
-            new_info = get_task_info(t.info['job_id'])
-            if new_info is not None: 
-                nt = t.update_state(slurm_statue2task_statue(new_info.statue))
-            else:
-                state = get_statue(t.info['job_id'])
-                if state=='COMPLETED':
-                    nt = t.update_state(State.Complete)
-                else:
-                    nt = t.update_state(State.Failed)
+            state = get_statue(t.info['job_id'])
+            nt = t.update_state(state)
             return nt
 
 
@@ -224,15 +226,6 @@ class Slurm(Cluster):
         取消任务
         """
         scancel(t.sid)
-        #return t
 
-    # @classmethod
-    # def is_failure(cls,t:TaskSlurm):
-    #     result = get_task_info(t.sid)
-    #     if result[3] == failure:
-    #         state = State.Failed
-    #         return t.update_statue(state)
-    #     else:
-    #         return t
 
 

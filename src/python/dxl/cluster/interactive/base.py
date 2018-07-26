@@ -19,8 +19,9 @@ import json
 from enum import Enum
 from dxpy.file_system.path import Path
 from dxpy.time.timestamps import TaskStamp
-from dxpy.time.utils import strf, strp
+from dxpy.time.utils import strf, strp, now
 from ..database.base import check_json
+from typing import Dict, Iterable
 
 
 class State(Enum):
@@ -44,6 +45,30 @@ class Type(Enum):
     Command = 1,
     Script = 2
 
+
+class TaskInfo:
+    def __init__(self,sid=None,nb_nodes=None,node_list=None):
+        self.sid = sid
+        if isinstance(self.sid, str):
+            self.sid = int(self.sid)
+        if nb_nodes==None:
+            self.nb_nodes=0
+        else:
+            self.nb_nodes = int(nb_nodes)
+        self.node_list = node_list
+
+    @classmethod
+    def parse_dict(cls, dct:str):
+        return TaskInfo(nb_nodes=dct['nodes'],
+                   node_list=dct['node_list'],
+                   sid=dct['job_id'])
+
+    def to_dict(self) -> Dict[str, str]:
+        return {
+            'job_id': self.sid,
+            'nodes': self.nb_nodes,
+            'node_list': self.node_list
+        }
 
 class Task:
     json_tag = '__task__'
@@ -158,6 +183,39 @@ class Task:
                  script_file=self.script_file,
                  info=new_info) 
 
+    def update_start(self):
+        time_stamp.start = now()
+        return Task(tid=self.id,
+                 desc=self.desc,
+                 workdir=self.workdir,
+                 worker=self.worker,
+                 time_stamp=self.time_stamp,
+                 dependency=self.dependency,
+                 ttype=self.type,
+                 state=self.state,
+                 is_root=self.is_root,
+                 data=self.data,
+                 father=self.father,
+                 script_file=self.script_file,
+                 info=new_info)
+
+    def updata_complete(self):
+        time_stamp.end = now()
+        return Task(tid=self.id,
+                 desc=self.desc,
+                 workdir=self.workdir,
+                 worker=self.worker,
+                 time_stamp=self.time_stamp,
+                 dependency=self.dependency,
+                 ttype=self.type,
+                 state=self.state,
+                 is_root=self.is_root,
+                 data=self.data,
+                 father=self.father,
+                 script_file=self.script_file,
+                 info=new_info)
+    
+    
     @classmethod
     def from_json(cls, s):
         check_json(s)

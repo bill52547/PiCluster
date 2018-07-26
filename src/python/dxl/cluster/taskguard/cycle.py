@@ -44,6 +44,7 @@ def backend_cycle():
                 else:
                     if complete_rate(i)==1:
                         new_i = i.update_state(base.State.Complete)
+                        # new_i = new_i.update_complete()
                     else:
                         new_i = i.update_state(base.State.Runing)
             web.Request().update(new_i)                          
@@ -65,6 +66,7 @@ def graph_cycle():
             task_submit = slurm.Slurm().submit(i)
         else:
             task_submit = i.update_state(base.State.Runing)
+            # task_submit = task_submit.update_start()
             web.Request().update(task_submit)
     # tasks_to_submit = (web.Request().read_all().filter(lambda t:t.id in runable_tasks)
     #           .filter(lambda t:t.is_before_submit))
