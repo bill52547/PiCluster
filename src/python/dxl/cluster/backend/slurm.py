@@ -25,8 +25,8 @@ def scancel_url(tid):
 def squeue_url():
     return 'http://www.tech-pi.com:1888/api/v1/slurm/squeue'
 
-def sbatch_url(sargs,work_directory):
-    return f'http://www.tech-pi.com:1888/api/v1/slurm/sbatch?arg&file={sargs}&work_dir={work_directory}'
+def sbatch_url(sargs,file,work_directory):
+    return f'http://www.tech-pi.com:1888/api/v1/slurm/sbatch?arg={sargs}&file={file}&work_dir={work_directory}'
 
 
 class SlurmStatue(Enum):
@@ -153,8 +153,8 @@ def squeue() -> 'Observable[TaskSlurmInfo]':
           .filter(lambda l:l is not None))
 
 
-def sbatch(workdir: Directory, args):
-    result = requests.post(sbatch_url(args,workdir)).json()
+def sbatch(workdir: Directory,filename, args):
+    result = requests.post(sbatch_url(args,filename,workdir)).json()
     return result['job_id']
 
 def scancel(sid:int):
@@ -199,9 +199,9 @@ def get_task_info(sid: int) -> TaskSlurmInfo:
 class Slurm(Cluster):
     @classmethod
     def submit(cls, t: TaskSlurm):
-        sid = sbatch(t.workdir, t.script_file[0])
+        sid = sbatch(t.workdir,t.info['args'], t.script_file[0])
         slurm_info = get_task_info(sid)
-        new_info = TaskInfo(sid = sid,nb_nodes=slurm_info.nb_nodes,node_list=slurm_info.node_list) 
+        new_info = TaskInfo(sid = sid,nb_nodes=slurm_info.nb_nodes,node_list=slurm_info.node_list,nb_GPU=t.info['GPUs'],args=t.info['args']) 
         # new_task = t.update_info(new_info.to_dict())
         new_task = t.update_info(new_info.to_dict())
         nt = new_task.update_state(State.Runing)

@@ -3,7 +3,7 @@ from unittest.mock import patch, Mock
 from dxl.cluster.backend import slurm
 from dxpy.filesystem import Directory, File
 from fs.memoryfs import MemoryFS
-from dxl.cluster.interactive.base import Task, State,Type
+from dxl.cluster.interactive.base import Task, State,Type,TaskInfo
 
 # value2 = ["             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)             \n",
 #           "                327      main  test.sh hongxwing  R       4:41      1 NB408A-WS1    "]
@@ -74,7 +74,7 @@ from dxl.cluster.interactive.base import Task, State,Type
 #         self.assertEqual(slurm.dependency_args(t),
 #                          ('--dependency=afterok:117928',))
 
-info = slurm.TaskSlurmInfo('main','post.sh','twj','R','0.00',1,'(None)')
+info = TaskInfo('main','post.sh','twj','R','0.00',1,'(None)')
 
 task= slurm.TaskSlurm(['run.sh'],tid = 1,is_root=True,workdir='/mnt/gluster/twj/GATE/16',ttype=Type.Script)
 

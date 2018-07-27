@@ -47,7 +47,7 @@ class Type(Enum):
 
 
 class TaskInfo:
-    def __init__(self,sid=None,nb_nodes=None,node_list=None):
+    def __init__(self,sid=None,nb_nodes=None,node_list=None,nb_GPU=None,args=None):
         self.sid = sid
         if isinstance(self.sid, str):
             self.sid = int(self.sid)
@@ -56,19 +56,47 @@ class TaskInfo:
         else:
             self.nb_nodes = int(nb_nodes)
         self.node_list = node_list
+        if nb_GPU==None:
+            self.nb_GPU = 0
+        else:
+            self.nb_GPU = nb_GPU
+        if args==None:
+            self.args=''
+        else:
+            self.args=args
 
     @classmethod
     def parse_dict(cls, dct:str):
         return TaskInfo(nb_nodes=dct['nodes'],
                    node_list=dct['node_list'],
-                   sid=dct['job_id'])
+                   sid=dct['job_id'],
+                   nb_GPU=dct['GPUs'],
+                   args=dct['args'])
 
     def to_dict(self) -> Dict[str, str]:
         return {
             'job_id': self.sid,
             'nodes': self.nb_nodes,
-            'node_list': self.node_list
+            'node_list': self.node_list,
+            'GPUs': self.nb_GPU,
+            'args':self.args
         }
+
+    def update_node_list(self,node_list):
+        return TaskInfo(sid=self.sid,
+               nb_nodes=self.nb_nodes,
+               node_list=node_list,
+               nb_GPU=self.nb_GPU,
+               args=self.args
+               )
+
+    def update_args(self,args):
+        return TaskInfo(sid=self.sid,
+               nb_nodes=self.nb_nodes,
+               node_list=self.node_list,
+               nb_GPU=self.nb_GPU,
+               args=args
+               )
 
 class Task:
     json_tag = '__task__'
@@ -116,7 +144,7 @@ class Task:
             script_file = []
         self.script_file = script_file
         if info is None:
-            info = {}
+            info = TaskInfo().to_dict()
         self.info=info
 
     @property
@@ -138,6 +166,12 @@ class Task:
     @property
     def is_fail(self):
         return self.state == State.Failed
+
+    @property
+    def is_depen_gpu(self):
+        if self.info !={}:
+            return self.info['GPUs'] !=0
+
 
     def command(self, generate_func=None) -> str:
         if generate_func is None:
