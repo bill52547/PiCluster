@@ -6,16 +6,32 @@ import rx
 def find_sub(task):
     return (web.Request().read_all().filter(lambda t:t.father==[task.id]))
 
+def num_subs(task):
+    return len(find_sub(task).to_list()
+              .subscribe_on(rx.concurrency.ThreadPoolScheduler())
+              .to_blocking().first())
+
+
 def complete_rate(task):
     subs = find_sub(task)
-    num_subs = len(subs.to_list()
+    if subs==0:
+        return 1
+    else:
+        complete = (subs.filter(lambda t:t.state==base.State.Complete).to_list()
               .subscribe_on(rx.concurrency.ThreadPoolScheduler())
               .to_blocking().first())
-    complete = (subs.filter(lambda t:t.state==base.State.Complete).to_list()
+        return  len(complete)/num_subs(task)
+
+
+def fail_rate(task):
+    subs = find_sub(task)
+    if subs==0:
+        return 0
+    else:
+        failure = (subs.filter(lambda t:t.state==base.State.Failed).to_list()
               .subscribe_on(rx.concurrency.ThreadPoolScheduler())
               .to_blocking().first())
-    rate = len(complete)/num_subs
-    return rate
+        return len(failure)/num_subs(task)
 
 def resubmit_failure(task:Task):
     subs = find_sub(task)
@@ -31,13 +47,6 @@ def resubmit_failure(task:Task):
             tasks[j].replace_dependency(old_id,tasknew.id)
             web.Request().update(tasks[j])
         
-# class Service:
-#     def cycle(self,task):
-#         scheduler = BlockingScheduler()
-#         scheduler.add_job(resubmit_failure(task),'interval',seconds=5)
-#         try:
-#             resubmit_failure(task)
-#             scheduler.start()
-#         except (KeyboardInterrupt, SystemExit):
-#             pass
 
+
+    

@@ -19,8 +19,9 @@ import json
 from enum import Enum
 from dxpy.file_system.path import Path
 from dxpy.time.timestamps import TaskStamp
-from dxpy.time.utils import strf, strp
+from dxpy.time.utils import strf, strp, now
 from ..database.base import check_json
+from typing import Dict, Iterable
 
 
 class State(Enum):
@@ -45,6 +46,58 @@ class Type(Enum):
     Script = 2
 
 
+class TaskInfo:
+    def __init__(self,sid=None,nb_nodes=None,node_list=None,nb_GPU=None,args=None):
+        self.sid = sid
+        if isinstance(self.sid, str):
+            self.sid = int(self.sid)
+        if nb_nodes==None:
+            self.nb_nodes=0
+        else:
+            self.nb_nodes = int(nb_nodes)
+        self.node_list = node_list
+        if nb_GPU==None:
+            self.nb_GPU = 0
+        else:
+            self.nb_GPU = nb_GPU
+        if args==None:
+            self.args=''
+        else:
+            self.args=args
+
+    @classmethod
+    def parse_dict(cls, dct:str):
+        return TaskInfo(nb_nodes=dct['nodes'],
+                   node_list=dct['node_list'],
+                   sid=dct['job_id'],
+                   nb_GPU=dct['GPUs'],
+                   args=dct['args'])
+
+    def to_dict(self) -> Dict[str, str]:
+        return {
+            'job_id': self.sid,
+            'nodes': self.nb_nodes,
+            'node_list': self.node_list,
+            'GPUs': self.nb_GPU,
+            'args':self.args
+        }
+
+    def update_node_list(self,node_list):
+        return TaskInfo(sid=self.sid,
+               nb_nodes=self.nb_nodes,
+               node_list=node_list,
+               nb_GPU=self.nb_GPU,
+               args=self.args
+               )
+
+    def update_args(self,args):
+        return TaskInfo(sid=self.sid,
+               nb_nodes=self.nb_nodes,
+               node_list=self.node_list,
+               nb_GPU=self.nb_GPU,
+               args=args
+               )
+
 class Task:
     json_tag = '__task__'
 
@@ -59,7 +112,9 @@ class Task:
                  time_stamp=None,
                  dependency=None,
                  is_root=True,
-                 data=None):
+                 data=None,
+                 script_file=None,
+                 info=None):
         self.id = tid
         self.desc = desc
         self.workdir = Path(workdir).abs
@@ -85,6 +140,12 @@ class Task:
         if father is None:
             father = []
         self.father = father
+        if script_file is None:
+            script_file = []
+        self.script_file = script_file
+        if info is None:
+            info = TaskInfo().to_dict()
+        self.info=info
 
     @property
     def is_pending(self):
@@ -106,6 +167,12 @@ class Task:
     def is_fail(self):
         return self.state == State.Failed
 
+    @property
+    def is_depen_gpu(self):
+        if self.info !={}:
+            return self.info['GPUs'] !=0
+
+
     def command(self, generate_func=None) -> str:
         if generate_func is None:
             pass
@@ -121,8 +188,68 @@ class Task:
         self.dependency = sids
 
     def update_state(self,new_statue):
-        self.state = new_statue
+        return Task(tid=self.id,
+                 desc=self.desc,
+                 workdir=self.workdir,
+                 worker=self.worker,
+                 time_stamp=self.time_stamp,
+                 dependency=self.dependency,
+                 ttype=self.type,
+                 state=new_statue,
+                 is_root=self.is_root,
+                 data=self.data,
+                 father=self.father,
+                 script_file=self.script_file,
+                 info=self.info)
+    
+    def update_info(self, new_info):
+        return Task(tid=self.id,
+                 desc=self.desc,
+                 workdir=self.workdir,
+                 worker=self.worker,
+                 time_stamp=self.time_stamp,
+                 dependency=self.dependency,
+                 ttype=self.type,
+                 state=self.state,
+                 is_root=self.is_root,
+                 data=self.data,
+                 father=self.father,
+                 script_file=self.script_file,
+                 info=new_info) 
 
+    def update_start(self):
+        time_stamp.start = now()
+        return Task(tid=self.id,
+                 desc=self.desc,
+                 workdir=self.workdir,
+                 worker=self.worker,
+                 time_stamp=self.time_stamp,
+                 dependency=self.dependency,
+                 ttype=self.type,
+                 state=self.state,
+                 is_root=self.is_root,
+                 data=self.data,
+                 father=self.father,
+                 script_file=self.script_file,
+                 info=new_info)
+
+    def updata_complete(self):
+        time_stamp.end = now()
+        return Task(tid=self.id,
+                 desc=self.desc,
+                 workdir=self.workdir,
+                 worker=self.worker,
+                 time_stamp=self.time_stamp,
+                 dependency=self.dependency,
+                 ttype=self.type,
+                 state=self.state,
+                 is_root=self.is_root,
+                 data=self.data,
+                 father=self.father,
+                 script_file=self.script_file,
+                 info=new_info)
+    
+    
     @classmethod
     def from_json(cls, s):
         check_json(s)
@@ -146,7 +273,9 @@ class Task:
                         'end': strf(obj.time_stamp.end)
                     },
                     'is_root': obj.is_root,
-                    'data': obj.data }
+                    'data': obj.data,
+                    'script_file': obj.script_file,
+                    'info': obj.info }
         raise TypeError(repr(obj) + " is not JSON serializable")
 
     @classmethod
@@ -165,7 +294,9 @@ class Task:
                             end=strp(dct['time_stamp']['end'])),
                         dependency=dct['dependency'],
                         is_root=dct['is_root'],
-                        data=dct['data'])
+                        data=dct['data'],
+                        script_file=dct['script_file'],
+                        info=dct['info'])
         return dct
 
     def __str__(self):

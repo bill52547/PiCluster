@@ -40,7 +40,9 @@ class DBprocess:
                 'start': strf(task.time_start),
                 'end': strf(task.time_end)},
             'state': task.state,
-            'is_root': task.is_root
+            'is_root': task.is_root,
+            'script_file': json.loads(task.script_file),
+            'info': json.loads(task.info)
         })
 
     @classmethod
@@ -56,7 +58,9 @@ class DBprocess:
                   dependency=json.dumps(dct['dependency']),
                   father=json.dumps(dct['father']),
                   time_create=strp(dct['time_stamp']['create']),
-                  is_root=dct['is_root'])
+                  is_root=dct['is_root'],
+                  script_file=json.dumps(dct['script_file']),
+                  info =json.dumps(dct['info']))
 
     @classmethod
     def create(cls, task_json: str) -> int:
@@ -127,7 +131,9 @@ class DBprocess:
         taskdb.time_create = strp(dct['time_stamp']['create'])
         taskdb.time_start = strp(dct['time_stamp']['start'])
         taskdb.time_end = strp(dct['time_stamp']['end'])
-        taskdb.is_root = dct['is_root']        
+        taskdb.is_root = dct['is_root']
+        taskdb.script_file = json.dumps(dct['script_file']) 
+        taskdb.info = json.dumps(dct['info'])     
         return taskdb
 
 def check_json(s, is_with_id=False):
@@ -160,6 +166,8 @@ def check_json(s, is_with_id=False):
     check_key(dct, 'workdir', str)
     check_key(dct, 'dependency', list)
     check_key(dct, 'father', list)
+    check_key(dct, 'script_file',list)
+    check_key(dct, 'info',dict)
 
 
     
