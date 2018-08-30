@@ -2,7 +2,6 @@ import copy
 import json
 import unittest
 import pytest
-from dxl.cluster.database import base
 from dxl.cluster.config import config as c
 from dxl.cluster.database.model import Database
 from dxl.cluster.database.base import DBprocess, TaskDB, check_json
@@ -82,27 +81,30 @@ noupdate_result_data = {
 	"info": {}
 }
 
+@pytest.fixture()
+def before():
+	DBprocess.session = None
 
-def test_create_session():
+def test_create_session(before):
 	DBprocess.create_session()
 	assert DBprocess.session is not None
 
 
-def test_get_or_create_session1():
+def test_get_or_create_session1(before):
 	assert DBprocess.get_or_create_session() is not None
 
 
-def test_get_or_create_session2():
+def test_get_or_create_session2(before):
 	DBprocess.create_session()
 	assert DBprocess.get_or_create_session() == DBprocess.session
 
 
-def test_clear_session1():
+def test_clear_session1(before):
 	DBprocess.clear_session()
 	assert DBprocess.session is None
 
 
-def test_clear_session2():
+def test_clear_session2(before):
 	DBprocess.create_session()
 	DBprocess.clear_session()
 	assert DBprocess.session is None
@@ -114,44 +116,44 @@ class TestDatabase(unittest.TestCase):
 		c['path'] = ':memory:'
 		Database.create()
 		indata = json.dumps(data)
-		base.DBprocess.create_session()
-		self.tid = base.DBprocess.create(indata)
+		DBprocess.create_session()
+		self.tid = DBprocess.create(indata)
 
 	def tearDown(self):
 		Database.clear()
 		c.back_to_default()
-		base.DBprocess.clear_session()
+		DBprocess.clear_session()
 
 	def test_create(self):
-		assert self.tid == 1
+		assert DBprocess.get_or_create_session().query(TaskDB).get(self.tid).desc == data['desc']
+		assert self.tid == DBprocess.get_or_create_session().query(TaskDB).get(self.tid).id
 
 	def test_delete(self):
 		DBprocess.delete(self.tid)
 		task_db = DBprocess.get_or_create_session().query(TaskDB).get(self.tid)
 		assert task_db is None
 
-	# TODO(hongjiang)
-	# def test_readall(self):
-	# 	task_jsons = []
-	# 	DBprocess.read_all().subscribe(lambda t: task_jsons.append(t))
-	# 	newresult = json.dumps(task_jsons)
-	# 	print('*'*90)
-	# 	print(newresult)
-	# 	assert newresult == '["{\"__task__\": true, \"id\": 1, \"desc\": \"a new recon task\", \"data\": {\"filename\": \"new.h5\"}, \"worker\": \"1\", \"type\": \"float\", \"workdir\": \"/home/twj2417/Destop\", \"dependency\": [\"task1\", \"task2\"], \"father\": [1], \"time_stamp\": {\"create\": \"2018-05-24 11:55:41.600000\", \"start\": null, \"end\": null}, \"state\": \"submit\", \"is_root\": false, \"script_file\": [], \"info\": {}}"]'
+	def test_readall(self):
+		task_jsons = []
+		DBprocess.read_all().subscribe(lambda t: task_jsons.append(t))
+		newresult = json.dumps(task_jsons)
+		self.assertIsNotNone(newresult)
 
-	def test_noupdate_db2json_read(self):
-		data1 = DBprocess.db2json(DBprocess.read_taskdb(self.tid))
-		result1 = json.loads(data1)
-		data2 = DBprocess.read(self.tid)
-		result2 = json.loads(data2)
-		assert result1 == noupdate_result_data
-		assert result2 == noupdate_result_data
+	def test_noupdate_db2json(self):
+		data = DBprocess.db2json(DBprocess.read_taskdb(self.tid))
+		result = json.loads(data)
+		assert result == noupdate_result_data
 
-	def test_update_and_read(self):
+	def test_noupdate_read(self):
+		data = DBprocess.read(self.tid)
+		result = json.loads(data)
+		assert result == noupdate_result_data
+
+	def test_update(self):
 		tid = newdata['id']
 		indata = json.dumps(newdata)
-		base.DBprocess.update(indata)
-		data = base.DBprocess.read(tid)
+		DBprocess.update(indata)
+		data = DBprocess.read(tid)
 		result = json.loads(data)
 		assert result == newdata
 
@@ -169,14 +171,17 @@ class TestDatabase(unittest.TestCase):
 			check_json(indata1)
 		except Exception as e:
 			e = str(e)
-			assert e == """'__task__' not found or is False for JSON: {"id": 1, "desc": "a new recon task", "data": {"filename": "new.h5"}, "state": "submit", "workdir": "/home/twj2417/Destop", "worker": "1", "father": [1], "type": "float", "dependency": ["task1", "task2"], "time_stamp": {"create": "2018-05-24 11:55:41.600000", "start": "2018-05-24 11:56:12.300000", "end": "2018-05-26 11:59:23.600000"}, "is_root": false, "script_file": ["file.exe"], "info": {"job_id": 5826, "partition": "main", "name": "run.sh", "user": "root", "status": "PD", "time": "0:00", "nodes": 1, "node_list": "(None)"}}"""
+			newdata1 = json.dumps(newdata1)
+			assert e == "'__task__' not found or is False for JSON: {}".format(newdata1)
 		try:
 			check_json(indata2)
 		except Exception as e:
 			e = str(e)
-			assert e == """Required key: desc is not found in JSON string: {"__task__": true, "id": 1, "data": {"filename": "new.h5"}, "state": "submit", "workdir": "/home/twj2417/Destop", "worker": "1", "father": [1], "type": "float", "dependency": ["task1", "task2"], "time_stamp": {"create": "2018-05-24 11:55:41.600000", "start": "2018-05-24 11:56:12.300000", "end": "2018-05-26 11:59:23.600000"}, "is_root": false, "script_file": ["file.exe"], "info": {"job_id": 5826, "partition": "main", "name": "run.sh", "user": "root", "status": "PD", "time": "0:00", "nodes": 1, "node_list": "(None)"}}"""
+			newdata2 = json.dumps(newdata2)
+			assert e == "Required key: {key} is not found in JSON string: {s}".format(key='desc', s=newdata2)
 		try:
 			check_json(indata3)
 		except Exception as e:
 			e = str(e)
-			assert e == """Wrong type for key: worker with value: 1"""
+			assert e == "Wrong type for key: {k} with value: {v}".format(k='worker', v=newdata3['worker'])
+
