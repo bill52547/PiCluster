@@ -6,30 +6,9 @@ from dxl.cluster.config import config
 from dxl.cluster.database.base import DBprocess
 from dxl.cluster.database.model import *
 from dxl.cluster.config import config as c
+from .data_for_test import data
 
 config_path_sqllite = config.path_sqllite
-
-data = {
-	"__task__": True,
-	"desc": "a new recon task",
-	"data": {
-		"filename": "new.h5"
-	},
-	"state": "submit",
-	"workdir": "/home/twj2417/Destop",
-	"worker": "1",
-	"father": [1],
-	"type": "float",
-	"dependency": ["task1", "task2"],
-	"time_stamp": {
-		"create": "2018-05-24 11:55:41.6",
-		"start": None,
-		"end": None
-	},
-	"is_root": False,
-	"script_file": [],
-	"info": {}
-}
 
 
 class TestDatabase(unittest.TestCase):

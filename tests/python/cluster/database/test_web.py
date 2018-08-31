@@ -1,50 +1,180 @@
-from dxl.cluster.database.model import Database
-from dxl.cluster.config import config as c
-import json
-import unittest
+import copy
+import pytest
 import requests
+from dxl.cluster.database.model import Database
+from dxl.cluster.database.api.web import *
+from dxl.cluster.database.api.cli.cmds import *
+from .data_for_test import *
+
+task_db_primary_key = 1
 
 
-class TestWeb(unittest.TestCase):
-	def setUp(self):
-		c['path'] = ':memory:'
-		Database.create()
-		with open('/home/hongjiang/Desktop/dxcluster_config/data.json') as fin:
-			data = json.load(fin)
-		indata = json.dumps(data)
-		result = requests.post(self.tasks_url(), {'task': indata}).json()
-		self.tid = result['id']
+def tasks_url():
+	return 'http://localhost:23300/api/v0.2/tasks'
 
-	def tearDown(self):
-		requests.delete(self.task_url(self.tid))
-		Database.clear()
-		c.back_to_default()
 
-	def test_delete(self):
-		requests.delete(self.task_url(self.tid))
-		result = requests.get(self.tasks_url()).text
-		assert result == '[]'
+def task_url(tid):
+	return 'http://localhost:23300/api/v0.2/task/{}'.format(tid)
 
-	def test_read_and_update(self):
-		with open('/home/hongjiang/Desktop/dxcluster_config/newdata.json') as fin:
-			inputs = json.load(fin)
-		tid = inputs['id']
-		indata = json.dumps(inputs)
-		result = requests.put(self.tasks_url(), {'task': indata})
-		data = requests.get(self.task_url(tid)).text
-		result1 = json.loads(data)
-		print(result1)
-		assert result1 == {'__task__': True, 'id': 1, 'desc': 'a new recon task', 'data': {'filename': 'new.h5'},
-						   'worker': '1', 'type': 'float', 'workdir': '/home/twj2417/Destop',
-						   'dependency': ['task1', 'task2'], 'father': [1],
-						   'time_stamp': {'create': '2018-05-24 11:55:41.600000', 'start': '2018-05-24 11:56:12.300000',
-										  'end': '2018-05-26 11:59:23.600000'}, 'state': 'submit', 'is_root': False,
-						   'script_file': ['file.exe'],
-						   'info': {'job_id': 5826, 'partition': 'main', 'name': 'run.sh', 'user': 'root',
-									'status': 'PD', 'time': '0:00', 'nodes': 1, 'node_list': '(None)'}}
 
-	def tasks_url(self):
-		return 'http://localhost:23300/api/v0.2/tasks'
+@pytest.fixture(scope="module")
+def before_after():
+	# requests.delete(task_url(1))
+	Database.clear()
+	# c.back_to_default()
+	c['path'] = ':memory:'
+	Database.create()
+	indata = json.dumps(data)
+	DBprocess.create_session()
+	tid = DBprocess.create(indata)
+	# requests.post(tasks_url(), {'task': indata}).json()
+	yield tid
+	requests.delete(task_url(tid))
+	Database.clear()
+	c.back_to_default()
 
-	def task_url(self, tid):
-		return 'http://localhost:23300/api/v0.2/task/{}'.format(tid)
+
+def test_TaskResource_get(before_after):
+	result = requests.get(task_url(tid=before_after))
+	assert result.status_code == 200
+	assert result.headers['Content-Type'] == "application/json"
+	result_data = copy.deepcopy(data)
+	result_data['id'] = task_db_primary_key
+	assert result.json() == result_data
+
+
+def test_TaskResource_get2(before_after):
+	tid = 0
+	resutl = requests.get(task_url(tid))
+	assert resutl.status_code == 404
+	assert resutl.headers['Content-Type'] == "application/json"
+	assert resutl.json() == "Task with id: {tid} not found.".format(tid=tid)
+
+
+def test_TaskResource_delete(before_after):
+	result = requests.delete(task_url(tid=before_after))
+	assert result.status_code == 200
+	result = requests.get(task_url(tid=before_after))
+	assert result.status_code == 404
+	assert result.headers['Content-Type'] == "application/json"
+	assert result.json() == "Task with id: {tid} not found.".format(tid=before_after)
+
+
+def test_TaskResource_delete2(before_after):
+	result = requests.delete(task_url(tid=0))
+	assert result.status_code == 404
+	assert result.json() == "Task with id: {tid} not found.".format(tid=0)
+
+
+# TODO(hongjiang)assert the result of tasks
+def test_TasksResource(before_after):
+	result = requests.get(tasks_url())
+	assert result.status_code == 200
+	assert result.headers['Content-Type'] == "application/json"
+
+
+def test_TasksResource_post():
+	indata = json.dumps(data)
+	result = requests.post(tasks_url(), {'task': indata})
+	assert result.status_code == 201
+	assert result.headers['Content-Type'] == "application/json"
+	tid = result.json()
+	result = requests.get(task_url(tid['id']))
+	assert result.status_code == 200
+	assert result.headers['Content-Type'] == "application/json"
+	result_data = copy.deepcopy(data)
+	result_data['id'] = tid['id']
+	assert result.json() == result_data
+
+
+def test_TasksResource_put():
+	indata = json.dumps(newdata)
+	result = requests.put(tasks_url(), {'task': indata})
+	assert result.status_code == 201
+	assert result.headers['Content-Type'] == "application/json"
+	result = requests.get(task_url(tid=newdata['id']))
+	assert result.json() == newdata
+
+
+def test_TasksResource_put2():
+	copy_newdata = copy.deepcopy(newdata)
+	copy_newdata['id'] = 0
+	indata = json.dumps(copy_newdata)
+	result = requests.put(tasks_url(), {'task': indata})
+	assert result.status_code == 404
+	assert result.json() == "Task with id: {tid} not found.".format(tid=copy_newdata['id'])
+
+
+def test_api_root():
+	assert api_path('task') == '/api/vNone/task'
+	assert api_root(0.2) == '/api/v0.2'
+
+
+def test_api_path():
+	assert api_path('task', version='0.2') == '/api/v0.2/task'
+	assert api_path('task', version='0.2', base='database') == '/api/v0.2/database/task'
+	assert api_path('task', version='0.2', base='/database', suffix='<id>') == '/api/v0.2/database/task/<id>'
+	assert api_path('task', version='0.2', base='/', suffix='<id>') == '/api/v0.2/task/<id>'
+	assert api_path('tasks', version='0.2', base='database/') == '/api/v0.2/database/tasks'
+	assert api_path('tasks', version='0.2', base='/database/') == '/api/v0.2/database/tasks'
+
+
+app = Flask(__name__)
+api = Api(app)
+add_api(api)
+
+
+def test_add_api(before_after):
+	url = '/api/v{version}/{name}/{id}'.format(version=c['version'], name=c['name'], id=before_after)
+	result = app.test_client().get(url)
+	assert result.status_code == 200
+
+
+def test_add_api2(before_after):
+	url = '/api/v{version}/{name}/{id}'.format(version=c['version'], name=c['name'], id=before_after)
+	result = app.test_client().options(url)
+	assert result.status_code == 200
+
+
+def test_add_api3(before_after):
+	url = '/api/v{version}/{name}/{id}'.format(version=c['version'], name=c['name'], id=before_after)
+	result = app.test_client().head(url)
+	assert result.status_code == 200
+
+
+def test_add_api4(before_after):
+	url = '/api/v{version}/{names}'.format(version=c['version'], names=c['names'])
+	result = app.test_client().head(url)
+	assert result.status_code == 200
+
+
+def test_add_api5(before_after):
+	url = '/api/v{version}/{names}'.format(version=c['version'], names=c['names'])
+	indata = json.dumps(newdata)
+	result = app.test_client().put(url, data={'task': indata})
+	assert result.status_code == 201
+
+
+def test_add_api6(before_after):
+	url = '/api/v{version}/{name}/{id}'.format(version=c['version'], name=c['name'], id=before_after)
+	result = app.test_client().delete(url)
+	assert result.status_code == 200
+
+
+def test_add_api7(before_after):
+	url = '/api/v{version}/{names}'.format(version=c['version'], names=c['names'])
+	result = app.test_client().options(url)
+	assert result.status_code == 200
+
+
+def test_add_api8(before_after):
+	url = '/api/v{version}/{names}'.format(version=c['version'], names=c['names'])
+	indata = json.dumps(data)
+	result = app.test_client().post(url, data={'task': indata})
+	assert result.status_code == 201
+
+
+def test_add_api9(before_after):
+	url = '/api/v{version}/{names}'.format(version=c['version'], names=c['names'])
+	result = app.test_client().get(url)
+	assert result.status_code == 200

@@ -5,85 +5,13 @@ import pytest
 from dxl.cluster.config import config as c
 from dxl.cluster.database.model import Database
 from dxl.cluster.database.base import DBprocess, TaskDB, check_json
+from .data_for_test import *
 
-data = {
-	"__task__": True,
-	"desc": "a new recon task",
-	"data": {
-		"filename": "new.h5"
-	},
-	"state": "submit",
-	"workdir": "/home/twj2417/Destop",
-	"worker": "1",
-	"father": [1],
-	"type": "float",
-	"dependency": ["task1", "task2"],
-	"time_stamp": {
-		"create": "2018-05-24 11:55:41.6",
-		"start": None,
-		"end": None
-	},
-	"is_root": False,
-	"script_file": [],
-	"info": {}
-}
-newdata = {
-	"__task__": True,
-	"id": 1,
-	"desc": "a new recon task",
-	"data": {
-		"filename": "new.h5"
-	},
-	"state": "submit",
-	"workdir": "/home/twj2417/Destop",
-	"worker": "1",
-	"father": [1],
-	"type": "float",
-	"dependency": ["task1", "task2"],
-	"time_stamp": {
-		"create": "2018-05-24 11:55:41.600000",
-		"start": "2018-05-24 11:56:12.300000",
-		"end": "2018-05-26 11:59:23.600000"
-	},
-	"is_root": False,
-	"script_file": ["file.exe"],
-	"info": {"job_id": 5826,
-			 "partition": "main",
-			 "name": "run.sh",
-			 "user": "root",
-			 "status": "PD",
-			 "time": "0:00",
-			 "nodes": 1,
-			 "node_list": "(None)"
-			 }
-}
-
-noupdate_result_data = {
-	"__task__": True,
-	"id": 1,
-	"desc": "a new recon task",
-	"data": {
-		"filename": "new.h5"
-	},
-	"worker": "1",
-	"type": "float",
-	"workdir": "/home/twj2417/Destop",
-	"dependency": ["task1", "task2"],
-	"father": [1],
-	"time_stamp": {
-		"create": "2018-05-24 11:55:41.600000",
-		"start": None,
-		"end": None
-	},
-	"state": "submit",
-	"is_root": False,
-	"script_file": [],
-	"info": {}
-}
 
 @pytest.fixture()
 def before():
 	DBprocess.session = None
+
 
 def test_create_session(before):
 	DBprocess.create_session()
@@ -184,4 +112,3 @@ class TestDatabase(unittest.TestCase):
 		except Exception as e:
 			e = str(e)
 			assert e == "Wrong type for key: {k} with value: {v}".format(k='worker', v=newdata3['worker'])
-
