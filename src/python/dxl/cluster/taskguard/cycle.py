@@ -4,7 +4,7 @@ from ..interactive import web,base
 from ..backend import srf,slurm
 from ..submanager.base import resubmit_failure
 from apscheduler.schedulers.blocking import BlockingScheduler
-from ..submanager.base import complete_rate,fail_rate
+from ..submanager.base import is_completed,is_failed
 from ..backend.resource import allocate_node
 
 
@@ -40,12 +40,11 @@ def backend_cycle():
             if i.worker==base.Worker.Slurm:
                 new_i=slurm.Slurm().update(i)
             else:
-                if fail_rate(i)!=0:
+                if is_failed(i):
                     new_i = i.update_state(base.State.Failed)
                 else:
-                    if complete_rate(i)==1:
+                    if is_completed(i):
                         new_i = i.update_state(base.State.Complete)
-                        # new_i = new_i.update_complete()
                     else:
                         new_i = i.update_state(base.State.Runing)
             web.Request().update(new_i)                          

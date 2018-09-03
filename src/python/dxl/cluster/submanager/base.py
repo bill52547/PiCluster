@@ -12,26 +12,26 @@ def num_subs(task):
               .to_blocking().first())
 
 
-def complete_rate(task):
+def is_completed(task):
     subs = find_sub(task)
     if subs==0:
-        return 1
+        return True
     else:
         complete = (subs.filter(lambda t:t.state==base.State.Complete).to_list()
               .subscribe_on(rx.concurrency.ThreadPoolScheduler())
               .to_blocking().first())
-        return  len(complete)/num_subs(task)
+        return  len(complete) ==num_subs(task)
 
 
-def fail_rate(task):
+def is_failed(task):
     subs = find_sub(task)
     if subs==0:
-        return 0
+        return False
     else:
         failure = (subs.filter(lambda t:t.state==base.State.Failed).to_list()
               .subscribe_on(rx.concurrency.ThreadPoolScheduler())
               .to_blocking().first())
-        return len(failure)/num_subs(task)
+        return len(failure) >0
 
 def resubmit_failure(task:Task):
     subs = find_sub(task)
