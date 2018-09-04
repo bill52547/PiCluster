@@ -66,7 +66,7 @@ class TaskInfo:
             self.args=args
 
     @classmethod
-    def parse_dict(cls, dct:str):
+    def parse_dict(cls, dct:dict):
         return TaskInfo(nb_nodes=dct['nodes'],
                    node_list=dct['node_list'],
                    sid=dct['job_id'],
@@ -218,7 +218,7 @@ class Task:
                  info=new_info) 
 
     def update_start(self):
-        time_stamp.start = now()
+        self.time_stamp.start = now()
         return Task(tid=self.id,
                  desc=self.desc,
                  workdir=self.workdir,
@@ -231,10 +231,10 @@ class Task:
                  data=self.data,
                  father=self.father,
                  script_file=self.script_file,
-                 info=new_info)
+                 info=self.info)
 
     def updata_complete(self):
-        time_stamp.end = now()
+        self.time_stamp.end = now()
         return Task(tid=self.id,
                  desc=self.desc,
                  workdir=self.workdir,
@@ -247,7 +247,7 @@ class Task:
                  data=self.data,
                  father=self.father,
                  script_file=self.script_file,
-                 info=new_info)
+                 info=self.info)
     
     
     @classmethod

@@ -17,7 +17,7 @@ def task_url(tid):
 	return 'http://localhost:23300/api/v0.2/task/{}'.format(tid)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture()
 def before_after():
 	# requests.delete(task_url(1))
 	Database.clear()

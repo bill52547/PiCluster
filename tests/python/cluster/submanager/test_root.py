@@ -37,7 +37,7 @@ class TestRoot(unittest.TestCase):
                       data={'sample': 42},
                       is_root=True)
         self.t2 = web.Request().create(task1)
-def test_complete(self):
+    def test_complete(self):
         result = rootbase.complete_rate(web.Request().read(self.t1.id))
         assertsk( desc='test', workdir='/tmp/test',
                       worker=base.Worker.MultiThreading,
@@ -50,7 +50,7 @@ def test_complete(self):
                       data={'sample': 42},
                       is_root=True)
         self.t3 = web.Request().create(task2)
-    
+
     def tearDown(self):
         web.Request().delete(self.t1.id)
         web.Request().delete(self.t2.id)
