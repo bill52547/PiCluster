@@ -6,11 +6,14 @@ from dxl.fs import Directory, File
 from fs.memoryfs import MemoryFS
 
 
-dct = {'sid': 117929, 'partition': 'gpu', 'command': 'run.sh', 'usr': 'hongxwin',
-       'statue': 'PD', 'run_time': '0:00', 'nb_nodes': 1, 'node_list': '(None)'}
-dct2 = {'sid': 117930, 'partition': 'gpu', 'command': 'run.sh', 'usr': 'hongxwin',
-        'statue': 'PD', 'run_time': '0:00', 'nb_nodes': 1, 'node_list': '(None)'}
-
+# dct = {'sid': 117929, 'partition': 'gpu', 'command': 'run.sh', 'usr': 'hongxwin',
+#        'statue': 'PD', 'run_time': '0:00', 'nb_nodes': 1, 'node_list': '(None)'}
+# dct2 = {'sid': 117930, 'partition': 'gpu', 'command': 'run.sh', 'usr': 'hongxwin',
+#         'statue': 'PD', 'run_time': '0:00', 'nb_nodes': 1, 'node_list': '(None)'}
+dct = {'job_id': 117929, 'partition': 'gpu', 'name': 'run.sh', 'user': 'hongxwin',
+       'status': 'PD', 'time': '0:00', 'nodes': 1, 'node_list': '(None)'}
+dct2 = {'job_id': 117930, 'partition': 'gpu', 'name': 'run.sh', 'user': 'hongxwin',
+        'status': 'PD', 'time': '0:00', 'nodes': 1, 'node_list': '(None)'}
 dummy_info = slurm.TaskSlurmInfo.parse_dict(dct)
 dummy_info2 = slurm.TaskSlurmInfo.parse_dict(dct2)
 

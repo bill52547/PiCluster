@@ -110,13 +110,17 @@ def test_api_root():
 	assert api_root(0.2) == '/api/v0.2'
 
 
-def test_api_path():
-	assert api_path('task', version='0.2') == '/api/v0.2/task'
-	assert api_path('task', version='0.2', base='database') == '/api/v0.2/database/task'
-	assert api_path('task', version='0.2', base='/database', suffix='<id>') == '/api/v0.2/database/task/<id>'
-	assert api_path('task', version='0.2', base='/', suffix='<id>') == '/api/v0.2/task/<id>'
-	assert api_path('tasks', version='0.2', base='database/') == '/api/v0.2/database/tasks'
-	assert api_path('tasks', version='0.2', base='/database/') == '/api/v0.2/database/tasks'
+@pytest.mark.parametrize("url_input, expected",
+						 [(api_path('task', version='0.2'), '/api/v0.2/task'),
+						  (api_path('task', version='0.2', base='database'), '/api/v0.2/database/task'),
+						  (api_path('task', version='0.2', base='/database', suffix='<id>'),
+						   '/api/v0.2/database/task/<id>'),
+						  (api_path('task', version='0.2', base='/', suffix='<id>'), '/api/v0.2/task/<id>'),
+						  (api_path('tasks', version='0.2', base='database/'), '/api/v0.2/database/tasks'),
+						  (api_path('tasks', version='0.2', base='/database/'), '/api/v0.2/database/tasks')
+						  ])
+def test_api_path(url_input, expected):
+	assert url_input == expected
 
 
 app = Flask(__name__)

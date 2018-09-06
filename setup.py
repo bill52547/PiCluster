@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 setup(name='dxl-cluster',
-      version='0.0.3',
+      version='0.0.4',
       description='Cluster utility library.',
       url='https://github.com/Hong-Xiang/dxcluster',
       author='Hong Xiang',
