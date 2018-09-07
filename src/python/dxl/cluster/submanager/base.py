@@ -14,7 +14,7 @@ def num_subs(task):
 
 def complete_rate(task):
     subs = find_sub(task)
-    if subs==0:
+    if num_subs(task) == None:
         return 1
     else:
         complete = (subs.filter(lambda t:t.state==base.State.Complete).to_list()
@@ -25,7 +25,7 @@ def complete_rate(task):
 
 def fail_rate(task):
     subs = find_sub(task)
-    if subs==0:
+    if num_subs(task) == None:
         return 0
     else:
         failure = (subs.filter(lambda t:t.state==base.State.Failed).to_list()

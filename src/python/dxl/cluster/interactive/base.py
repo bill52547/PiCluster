@@ -148,13 +148,13 @@ class Task:
 			info = TaskInfo().to_dict()
 		self.info = info
 
-	def __eq__(self, m):
-		return isinstance(m, Task) and m.unbox() == self.unbox()
-
-	def unbox(self):
+	# def __eq__(self, m):
+	# 	return isinstance(m, Task) and m.unbox() == self.unbox()
+	#
+	# def unbox(self):
 		# return [self.id, self.desc, self.workdir, self.worker, self.father, self.type, self.state,self.time_stamp,
 		# 		self.dependency, self.is_root, self.data, self.script_file, self.info]
-		return self.time_stamp
+		# return self.time_stamp
 	@property
 	def is_pending(self):
 		return self.state == State.Pending
@@ -274,9 +274,9 @@ class Task:
 					'dependency': obj.dependency,
 					'father': obj.father,
 					'time_stamp': {
-						'create': obj.time_stamp['create'],
-						'start': obj.time_stamp['start'],
-						'end': obj.time_stamp['end']
+						'create': str(obj.time_stamp.create),
+						'start': str(obj.time_stamp.start),
+						'end': str(obj.time_stamp.end)
 					},
 					'is_root': obj.is_root,
 					'data': obj.data,
@@ -307,9 +307,9 @@ class Task:
 
 	def __str__(self):
 		dct = self.serialization(self)
-		dct['time_stamp'] = {'create': self.time_stamp['create'],
-							 'start': self.time_stamp['start'],
-							 'end': self.time_stamp['end']}
+		dct['time_stamp'] = {'create': str(self.time_stamp.create),
+							 'start': str(self.time_stamp.start),
+							 'end': str(self.time_stamp.end)}
 		return json.dumps(dct, separators=(',', ':'), indent=4)
 
 	def __hash__(self):

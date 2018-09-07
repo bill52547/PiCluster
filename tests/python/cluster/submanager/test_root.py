@@ -1,5 +1,5 @@
 from dxl.cluster.submanager import base as rootbase
-from dxl.cluster.interactive import base,web
+from dxl.cluster.interactive import base, web
 from dxl.cluster.config import config as c
 from dxl.cluster.database.model import Database
 from dxpy.time.timestamps import TaskStamp
@@ -8,66 +8,75 @@ import unittest
 import rx
 
 
-task = base.Task( desc='test', workdir='/tmp/test',
-                      worker=base.Worker.MultiThreading,
-                      ttype=base.Type.Regular,
-                      state=base.State.Pending,
-                      dependency=None,
-                      father=None,
-                      time_stamp=TaskStamp(create=strp(
-                          "2017-09-22 12:57:44.036185")),
-                      data={'sample': 42},
-                      is_root=True)
-
-
-
 class TestRoot(unittest.TestCase):
-    def setUp(self):
-        c['path'] = ':memory:'
-        Database.create()
-        self.t1 = web.Request().create(task)
-        task1 = base.Task( desc='test', workdir='/tmp/test',
-                      worker=base.Worker.MultiThreading,
-                      ttype=base.Type.Regular,
-                      state=base.State.Failed,
-                      dependency=None,
-                      father=[self.t1.id],
-                      time_stamp=TaskStamp(create=strp(
-                          "2017-09-22 12:57:44.036185")),
-                      data={'sample': 42},
-                      is_root=True)
-        self.t2 = web.Request().create(task1)
-    def test_complete(self):
-        result = rootbase.complete_rate(web.Request().read(self.t1.id))
-        assertsk( desc='test', workdir='/tmp/test',
-                      worker=base.Worker.MultiThreading,
-                      ttype=base.Type.Regular,
-                      state=base.State.Complete,
-                      dependency=[self.t2.id],
-                      father=[self.t1.id],
-                      time_stamp=TaskStamp(create=strp(
-                          "2017-09-22 12:57:44.036185")),
-                      data={'sample': 42},
-                      is_root=True)
-        self.t3 = web.Request().create(task2)
+	def setUp(self):
+		Database.clear()
+		c['path'] = ':memory:'
+		Database.create()
+		self.task = base.Task(desc='test', workdir='/tmp/test',
+							  worker=base.Worker.MultiThreading,
+							  ttype=base.Type.Regular,
+							  state=base.State.Pending,
+							  dependency=None,
+							  father=None,
+							  time_stamp=TaskStamp(create=strp(
+								  "2017-09-22 12:57:44.036185")),
+							  data={'sample': 42},
+							  is_root=True)
+		self.task = web.Request().create(self.task)
 
-    def tearDown(self):
-        web.Request().delete(self.t1.id)
-        web.Request().delete(self.t2.id)
-        web.Request().delete(self.t3.id)
-        Database.clear()
-        c.back_to_default()
+		self.task1 = base.Task(desc='test', workdir='/tmp/test',
+							   worker=base.Worker.MultiThreading,
+							   ttype=base.Type.Regular,
+							   state=base.State.Pending,
+							   dependency=None,
+							   father=[self.task.id],
+							   time_stamp=TaskStamp(create=strp(
+								   "2017-09-22 12:57:44.036185")),
+							   data={'sample': 42},
+							   is_root=True)
+		self.task1 = web.Request().create(self.task1)
 
-    def test_complete(self):
-        result = rootbase.complete_rate(web.Request().read(self.t1.id))
-        assert result == 0.5
+		self.task2 = base.Task(desc='test', workdir='/tmp/test',
+							   worker=base.Worker.MultiThreading,
+							   ttype=base.Type.Regular,
+							   state=base.State.Failed,
+							   dependency=None,
+							   father=[self.task.id],
+							   time_stamp=TaskStamp(create=strp(
+								   "2017-09-22 12:57:44.036185")),
+							   data={'sample': 42},
+							   is_root=True)
+		self.task2 = web.Request().create(self.task2)
 
-    def test_resubmit(self):
-        rootbase.resubmit_failure(web.Request().read(self.t1.id))
-        tasknew = web.Request().read(self.t3.id)
-        assert tasknew.dependency == [4]
-        web.Request().delete(4)
-        data = (web.Request().read_all().to_list()
-              .subscribe_on(rx.concurrency.ThreadPoolScheduler())
-              .to_blocking().first())
-        assert len(data) == 3
+	def tearDown(self):
+		Database.clear()
+		c.back_to_default()
+
+	def test_num_subs(self):
+		assert rootbase.num_subs(self.task) == 2
+
+	def test_complete_rate(self):
+		assert rootbase.complete_rate(self.task) == 0
+
+	def test_fail_rate(self):
+		assert rootbase.fail_rate(self.task) == 0.5
+
+	def test_resubmit_failure(self):
+		self.task3 = base.Task(desc='test', workdir='/tmp/test',
+							   worker=base.Worker.MultiThreading,
+							   ttype=base.Type.Regular,
+							   state=base.State.Failed,
+							   dependency=[self.task2.id],
+							   father=[self.task.id],
+							   time_stamp=TaskStamp(create=strp(
+								   "2017-09-22 12:57:44.036185")),
+							   data={'sample': 42},
+							   is_root=True)
+		self.task3 = web.Request().create(self.task3)
+
+		rootbase.resubmit_failure(self.task)
+		assert web.Request().read(self.task3.id + 1) is not None
+
+		self.task3 = web.Request().read(self.task3.id)
+		assert self.task3.dependency[0] == self.task3.id + 1

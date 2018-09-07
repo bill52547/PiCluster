@@ -57,7 +57,7 @@ class Request(Task):
         task_json = task.to_json()
         r = requests.put(url(), {'task': task_json})
         if r.status_code == 404:
-            raise TaskNotFoundError(task_json_dct['id'])
+            raise TaskNotFoundError(task_json['id'])
 
     @connection_error_handle
     def delete(self,tid):
