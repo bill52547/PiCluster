@@ -12,7 +12,7 @@ class CycleService:
     @classmethod
     def cycle(cls):
         graph_cycle()
-        backend_cycle()        
+        backend_cycle()
         #resubmit_cycle()
 
     @classmethod
@@ -33,7 +33,7 @@ def backend_cycle():
     running_tasks = (web.Request().read_all()
           .filter(lambda t:t.is_running or t.is_pending)
           .to_list().to_blocking().first())
-    if running_tasks==[None]:
+    if running_tasks==[]:
         return running_tasks
     else:
         for i in running_tasks:
@@ -48,8 +48,8 @@ def backend_cycle():
                         # new_i = new_i.update_complete()
                     else:
                         new_i = i.update_state(base.State.Runing)
-            web.Request().update(new_i)                          
-       
+            web.Request().update(new_i)
+
 
 def graph_cycle():
     """
@@ -98,4 +98,4 @@ def get_depens():
         depens.append(i.dependency)
     return depens
 
-        
+

@@ -39,7 +39,12 @@ def test_connection_error_handle():
 
 # task = base.Task(desc='test',workdir='tmp/test',script_file=['run.sh'])
 task = slurm.TaskSlurm(['run.sh'], workdir='/mnt/gluster/twj/GATE/16_8.0/sub.0', desc='father', is_root=True,
-					   ttype=base.Type.Script)
+					   ttype=base.Type.Script,
+					   time_stamp=TaskStamp(
+						   create=strp("2017-09-22 12:57:44.036185"),
+						   start=strp("2018-05-24 11:56:12.300000"),
+						   end=strp("2018-05-26 11:59:23.600000")))
+
 
 
 class Testweb(unittest.TestCase):

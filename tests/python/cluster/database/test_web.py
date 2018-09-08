@@ -18,7 +18,7 @@ def task_url(tid):
 
 
 @pytest.fixture()
-def before_after():
+def setup_teardown():
 	# requests.delete(task_url(1))
 	Database.clear()
 	# c.back_to_default()
@@ -30,12 +30,13 @@ def before_after():
 	# requests.post(tasks_url(), {'task': indata}).json()
 	yield tid
 	requests.delete(task_url(tid))
+	DBprocess.clear_session()
 	Database.clear()
 	c.back_to_default()
 
 
-def test_TaskResource_get(before_after):
-	result = requests.get(task_url(tid=before_after))
+def test_TaskResource_get(setup_teardown):
+	result = requests.get(task_url(tid=setup_teardown))
 	assert result.status_code == 200
 	assert result.headers['Content-Type'] == "application/json"
 	result_data = copy.deepcopy(data)
@@ -43,7 +44,7 @@ def test_TaskResource_get(before_after):
 	assert result.json() == result_data
 
 
-def test_TaskResource_get2(before_after):
+def test_TaskResource_get2(setup_teardown):
 	tid = 0
 	resutl = requests.get(task_url(tid))
 	assert resutl.status_code == 404
@@ -51,23 +52,23 @@ def test_TaskResource_get2(before_after):
 	assert resutl.json() == "Task with id: {tid} not found.".format(tid=tid)
 
 
-def test_TaskResource_delete(before_after):
-	result = requests.delete(task_url(tid=before_after))
+def test_TaskResource_delete(setup_teardown):
+	result = requests.delete(task_url(tid=setup_teardown))
 	assert result.status_code == 200
-	result = requests.get(task_url(tid=before_after))
+	result = requests.get(task_url(tid=setup_teardown))
 	assert result.status_code == 404
 	assert result.headers['Content-Type'] == "application/json"
-	assert result.json() == "Task with id: {tid} not found.".format(tid=before_after)
+	assert result.json() == "Task with id: {tid} not found.".format(tid=setup_teardown)
 
 
-def test_TaskResource_delete2(before_after):
+def test_TaskResource_delete2(setup_teardown):
 	result = requests.delete(task_url(tid=0))
 	assert result.status_code == 404
 	assert result.json() == "Task with id: {tid} not found.".format(tid=0)
 
 
 # TODO(hongjiang)assert the result of tasks
-def test_TasksResource(before_after):
+def test_TasksResource(setup_teardown):
 	result = requests.get(tasks_url())
 	assert result.status_code == 200
 	assert result.headers['Content-Type'] == "application/json"
@@ -128,57 +129,57 @@ api = Api(app)
 add_api(api)
 
 
-def test_add_api(before_after):
-	url = '/api/v{version}/{name}/{id}'.format(version=c['version'], name=c['name'], id=before_after)
+def test_add_api(setup_teardown):
+	url = '/api/v{version}/{name}/{id}'.format(version=c['version'], name=c['name'], id=setup_teardown)
 	result = app.test_client().get(url)
 	assert result.status_code == 200
 
 
-def test_add_api2(before_after):
-	url = '/api/v{version}/{name}/{id}'.format(version=c['version'], name=c['name'], id=before_after)
+def test_add_api2(setup_teardown):
+	url = '/api/v{version}/{name}/{id}'.format(version=c['version'], name=c['name'], id=setup_teardown)
 	result = app.test_client().options(url)
 	assert result.status_code == 200
 
 
-def test_add_api3(before_after):
-	url = '/api/v{version}/{name}/{id}'.format(version=c['version'], name=c['name'], id=before_after)
+def test_add_api3(setup_teardown):
+	url = '/api/v{version}/{name}/{id}'.format(version=c['version'], name=c['name'], id=setup_teardown)
 	result = app.test_client().head(url)
 	assert result.status_code == 200
 
 
-def test_add_api4(before_after):
+def test_add_api4(setup_teardown):
 	url = '/api/v{version}/{names}'.format(version=c['version'], names=c['names'])
 	result = app.test_client().head(url)
 	assert result.status_code == 200
 
 
-def test_add_api5(before_after):
+def test_add_api5(setup_teardown):
 	url = '/api/v{version}/{names}'.format(version=c['version'], names=c['names'])
 	indata = json.dumps(newdata)
 	result = app.test_client().put(url, data={'task': indata})
 	assert result.status_code == 201
 
 
-def test_add_api6(before_after):
-	url = '/api/v{version}/{name}/{id}'.format(version=c['version'], name=c['name'], id=before_after)
+def test_add_api6(setup_teardown):
+	url = '/api/v{version}/{name}/{id}'.format(version=c['version'], name=c['name'], id=setup_teardown)
 	result = app.test_client().delete(url)
 	assert result.status_code == 200
 
 
-def test_add_api7(before_after):
+def test_add_api7(setup_teardown):
 	url = '/api/v{version}/{names}'.format(version=c['version'], names=c['names'])
 	result = app.test_client().options(url)
 	assert result.status_code == 200
 
 
-def test_add_api8(before_after):
+def test_add_api8(setup_teardown):
 	url = '/api/v{version}/{names}'.format(version=c['version'], names=c['names'])
 	indata = json.dumps(data)
 	result = app.test_client().post(url, data={'task': indata})
 	assert result.status_code == 201
 
 
-def test_add_api9(before_after):
+def test_add_api9(setup_teardown):
 	url = '/api/v{version}/{names}'.format(version=c['version'], names=c['names'])
 	result = app.test_client().get(url)
 	assert result.status_code == 200

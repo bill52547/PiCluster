@@ -163,26 +163,26 @@ class Testtask(unittest.TestCase):
 		self.assertEqual(dct['worker'], dct2['worker'].name)
 		self.assertEqual(dct['is_root'], dct2['is_root'])
 		self.assertEqual(dct['time_stamp'], {
-			'create': time_stamp, 'start': None, 'end': None})
+			'create': time_stamp, 'start': 'None', 'end': 'None'})
 		self.assertEqual(dct['state'], State.BeforeSubmit.name)
 
 	def test_from_json(self):
-		t1 = base.Task.from_json(json.dumps(dct))
-		t2 = base.Task.from_json(json.dumps(dct))
-		# self.assertEqual(t.id, dct['id'])
-		# self.assertEqual(t.desc, dct['desc'])
-		# self.assertEqual(t.workdir, dct['workdir'])
-		# self.assertEqual(t.worker, base.Worker.Slurm)
-		# self.assertEqual(t.type, base.Type.Script)
-		# self.assertEqual(t.dependency, dct['dependency'])
-		# self.assertEqual(t.father, dct['father'])
-		# self.assertEqual(t.data, dct['data'])
-		# self.assertEqual(t.is_root, dct['is_root'])
-		# self.assertEqual(t.time_stamp.create, strp(dct['time_stamp']['create']))
-		# self.assertEqual(t.state, base.State.BeforeSubmit)
-		# self.assertEqual(t.script_file, dct['script_file'])
-		# self.assertEqual(t.info, dct['info'])
-		assert t1 == t2
+		t = base.Task.from_json(json.dumps(dct))
+		# t2 = base.Task.from_json(json.dumps(dct))
+		self.assertEqual(t.id, dct['id'])
+		self.assertEqual(t.desc, dct['desc'])
+		self.assertEqual(t.workdir, dct['workdir'])
+		self.assertEqual(t.worker, base.Worker.Slurm)
+		self.assertEqual(t.type, base.Type.Script)
+		self.assertEqual(t.dependency, dct['dependency'])
+		self.assertEqual(t.father, dct['father'])
+		self.assertEqual(t.data, dct['data'])
+		self.assertEqual(t.is_root, dct['is_root'])
+		self.assertEqual(t.time_stamp.create, strp(dct['time_stamp']['create']))
+		self.assertEqual(t.state, base.State.BeforeSubmit)
+		self.assertEqual(t.script_file, dct['script_file'])
+		self.assertEqual(t.info, dct['info'])
+		# assert t1 == t2
 	def test_init(self):
 		t = base.Task.from_json(json.dumps(dct))
 		if dct['state'] == 'BeforeSubmit':
