@@ -67,11 +67,15 @@ def test_TaskResource_delete2(setup_teardown):
 	assert result.json() == "Task with id: {tid} not found.".format(tid=0)
 
 
-# TODO(hongjiang)assert the result of tasks
 def test_TasksResource(setup_teardown):
 	result = requests.get(tasks_url())
 	assert result.status_code == 200
 	assert result.headers['Content-Type'] == "application/json"
+	result = result.json()
+	result_data = json.loads(result[0])
+	maybe_data = copy.deepcopy(data)
+	maybe_data['id'] = 1
+	assert result_data == maybe_data
 
 
 def test_TasksResource_post():

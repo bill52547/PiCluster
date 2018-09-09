@@ -24,7 +24,7 @@ def scancel_url(tid):
 
 def squeue_url():
 	return 'http://www.tech-pi.com:1888/api/v1/slurm/squeue'
-#TODO（）The parameter to open the file is args, not file
+
 def sbatch_url(sargs, file, work_directory):
 	return f'http://www.tech-pi.com:1888/api/v1/slurm/sbatch?arg={sargs}&file={file}&work_dir={work_directory}'
 

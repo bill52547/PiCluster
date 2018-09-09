@@ -129,6 +129,8 @@ class DBprocess:
         taskdb.dependency = json.dumps(dct['dependency'])
         taskdb.father = json.dumps(dct['father'])
         taskdb.time_create = strp(dct['time_stamp']['create'])
+        # taskdb.time_start = strp(dct['time_stamp']['start'])
+        # taskdb.time_end = strp(dct['time_stamp']['end'])
         taskdb.time_start = strp(dct['time_stamp']['start'])
         taskdb.time_end = strp(dct['time_stamp']['end'])
         taskdb.is_root = dct['is_root']
