@@ -44,7 +44,7 @@ class TasksResource(Resource):
 
     def put(self):
         try:
-            task = request.form['task']            
+            task = request.form['task']
             return Response(
                 DBprocess.update(task), 201, mimetype="application/json")
         except TaskNotFoundError as e:
