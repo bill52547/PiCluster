@@ -14,8 +14,9 @@ def num_subs(task):
 
 def is_completed(task):
     subs = find_sub(task)
-    if subs==0:
-        return True
+
+    if num_subs(task) == 0:
+        return 1
     else:
         complete = (subs.filter(lambda t:t.state==base.State.Complete).to_list()
               .subscribe_on(rx.concurrency.ThreadPoolScheduler())
@@ -25,8 +26,9 @@ def is_completed(task):
 
 def is_failed(task):
     subs = find_sub(task)
-    if subs==0:
-        return False
+
+    if num_subs(task) == 0:
+        return 0
     else:
         failure = (subs.filter(lambda t:t.state==base.State.Failed).to_list()
               .subscribe_on(rx.concurrency.ThreadPoolScheduler())

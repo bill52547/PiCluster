@@ -1,9 +1,15 @@
+import copy
 import unittest
 from unittest.mock import patch, Mock
+
+import requests
+
 from dxl.cluster.backend import slurm
 from dxpy.filesystem import Directory, File
 from fs.memoryfs import MemoryFS
-from dxl.cluster.interactive.base import Task, State,Type,TaskInfo
+
+from dxl.cluster.backend.slurm import TaskSlurmInfo, TaskSlurm, Slurm
+from dxl.cluster.interactive.base import Task, State, Type, TaskInfo
 
 # value2 = ["             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)             \n",
 #           "                327      main  test.sh hongxwing  R       4:41      1 NB408A-WS1    "]
@@ -73,28 +79,130 @@ from dxl.cluster.interactive.base import Task, State,Type,TaskInfo
 #                             info=info)
 #         self.assertEqual(slurm.dependency_args(t),
 #                          ('--dependency=afterok:117928',))
-
-info = TaskInfo('main','post.sh','twj','R','0.00',1,'(None)')
-
-task= slurm.TaskSlurm(['run.sh'],tid = 1,is_root=True,workdir='/mnt/gluster/twj/GATE/16',ttype=Type.Script)
+#
 
 
-class TestSlurm(unittest.TestCase):
-    def setUp(self):
-        t = slurm.sbatch(task.workdir,task.script_file[0])
-        self.id = t
+dct = {'sid': 117929, 'partition': 'gpu', 'name': 'run.sh', 'user': 'hongxwin',
+       'status': 'PD', 'time': '0:00', 'nodes': 1, 'node_list': '(None)', 'job_id': 1}
+new_data = {
+    "__task__": True,
+    "id": 1,
+    "desc": "a new recon task",
+    "data": {
+        "filename": "new.h5"
+    },
+    "state": "submit",
+    "workdir": "/home/twj2417/Destop",
+    "worker": "1",
+    "father": [1],
+    "type": "float",
+    "dependency": ["task1", "task2"],
+    "time_stamp": {
+        "create": "2018-05-24 11:55:41.600000",
+        "start": "2018-05-24 11:56:12.300000",
+        "end": "2018-05-26 11:59:23.600000"
+    },
+    "is_root": False,
+    "script_file": ["file.exe"],
+    "info": {"job_id": 5826,
+             "partition": "main",
+             "name": "run.sh",
+             "user": "root",
+             "status": "PD",
+             "time": "0:00",
+             "nodes": 1,
+             "node_list": "(None)"
+             }
+}
+taskslurm_data = {
+    'tid': 1,
+    "desc": "a new recon task",
+    "data": {
+        "filename": "new.h5"
+    },
+    "statue": State.BeforeSubmit,
+    "workdir": '/mnt/gluster/twj/GATE/16',
+    "father": [1],
+    "ttype": Type.Script,
+    "dependency": ["task1", "task2"],
+    "time_stamp": {
+        "create": "2018-05-24 11:55:41.600000",
+        "start": "2018-05-24 11:56:12.300000",
+        "end": "2018-05-26 11:59:23.600000"
+    },
+    "is_root": True,
+    "script_file": ['run.sh'],
+    "info": {
+        'job_id': 1,
+        'nb_nodes': 0,
+        'node_list': [2, 3, 4, 5],
+        'nb_GPU': None,
+        'args': 'run.sh'
+    }
+}
+
+info = TaskInfo(1, 1, '(None)', 'R', '0.00', )
+
+# task = slurm.TaskSlurm(['run.sh'], tid=1, is_root=True, workdir='/mnt/gluster/twj/GATE/16', ttype=Type.Script)
+task = slurm.TaskSlurm(**taskslurm_data)
 
 
-    def tearDown(self):
-        slurm.scancel(self.id)
-        
+# class TestSlurm(unittest.TestCase):
+#     def setUp(self):
+#         # TODO()sbatch: error: Batch job submission failed: Unable to contact slurm controller (connect failure)-->slurm接口未实现，实现了才可以测试
+#         t = slurm.sbatch(task.workdir, task.script_file[0], task.info['args'])
+#         self.id = t
+#
+#     def tearDown(self):
+#         slurm.scancel(self.id
+#                       )
+#
+#     def test_squeue(self):
+#         slurm.scancel(self.id)
+#         result = slurm.squeue().to_list().to_blocking().first()
+#         assert len(result) == 0
+#
+#     def test_scontrol(self):
+#         state = slurm.scontrol(int(self.id))['job_state']
+#         assert state == 'PENDING'
+#
+#     def test_get_task_info(self):
+#         slurm_info = slurm.get_task_info(self.id)
+#         assert slurm_info ==
 
-    def test_squeue(self):
-        slurm.scancel(self.id)
-        result = slurm.squeue().to_list().to_blocking().first()
-        assert len(result)==0
+
+# def test_submit():
+#     result = Slurm.submit(task)
+#     print(result)
+#
+#
+# def test_update():
+#     result = Slurm.update(task)
+#     print(result)
 
 
-    def test_scontrol(self):
-        state = slurm.scontrol(int(self.id))['job_state']
-        assert state=='PENDING'
+# def test_cancel():
+#     result = Slurm.cancel(task)
+
+
+def test_TaskSlurmInfo_parse_dict():
+    t1 = TaskSlurmInfo.parse_dict(dct)
+    t2 = TaskSlurmInfo.parse_dict(dct)
+    assert t1 == t2
+
+
+def test_TaskSlurmInfo_to_dict():
+    t = TaskSlurmInfo.parse_dict(dct)
+    new_dct = copy.deepcopy(dct)
+    del new_dct['sid']
+    assert t.to_dict() == new_dct
+
+
+def test_TaskSlurmInfo_repr():
+    t = TaskSlurmInfo.parse_dict(dct)
+    assert repr(t) == 'taskslurm(sid=%s)' % dct['job_id']
+
+
+def test_TaskSlurm_init():
+    t = TaskSlurm(**taskslurm_data)
+    assert t.sid == taskslurm_data['info']['job_id']

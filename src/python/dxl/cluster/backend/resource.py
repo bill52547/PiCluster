@@ -29,7 +29,7 @@ class Resource:
     def update_GPU(self,nb_GPU):
         return Resource(self.source_CPU,nb_GPU,self.source_memory)
 
-    def update_CPU(self,memory):
+    def update_MEM(self,memory):
         return Resource(self.source_CPU,self.source_GPU,memory)
     
 

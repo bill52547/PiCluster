@@ -119,7 +119,7 @@ class DBprocess:
     def json2db_update(cls, s):
         check_json(s,is_with_id=True)
         dct = json.loads(s)
-        taskdb = cls.read_taskdb(dct['id'])        
+        taskdb = cls.read_taskdb(dct['id'])
         taskdb.desc = dct['desc']
         taskdb.data = json.dumps(dct['data'])
         taskdb.state = dct['state']
@@ -129,11 +129,13 @@ class DBprocess:
         taskdb.dependency = json.dumps(dct['dependency'])
         taskdb.father = json.dumps(dct['father'])
         taskdb.time_create = strp(dct['time_stamp']['create'])
-        taskdb.time_start = strp(dct['time_stamp']['start'])
-        taskdb.time_end = strp(dct['time_stamp']['end'])
+        if dct['time_stamp']['start'] is not None:
+            taskdb.time_start = strp(dct['time_stamp']['start'])
+        if dct['time_stamp']['end'] is not None:
+            taskdb.time_end = strp(dct['time_stamp']['end'])
         taskdb.is_root = dct['is_root']
-        taskdb.script_file = json.dumps(dct['script_file']) 
-        taskdb.info = json.dumps(dct['info'])     
+        taskdb.script_file = json.dumps(dct['script_file'])
+        taskdb.info = json.dumps(dct['info'])
         return taskdb
 
 def check_json(s, is_with_id=False):
