@@ -62,10 +62,10 @@ class TestRoot(unittest.TestCase):
         assert rootbase.num_subs(self.task1) == 2
 
     def test_complete_rate(self):
-        assert rootbase.complete_rate(self.task1) == 0
+        assert rootbase.is_completed(self.task1) == 0
 
     def test_fail_rate(self):
-        assert rootbase.fail_rate(self.task1) == 0.5
+        assert rootbase.is_failed(self.task1) == 0.5
 
     def test_resubmit_failure(self):
         self.task4 = base.Task(desc='test', workdir='/tmp/test',

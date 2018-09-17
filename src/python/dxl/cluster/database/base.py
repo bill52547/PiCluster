@@ -129,9 +129,9 @@ class DBprocess:
         taskdb.dependency = json.dumps(dct['dependency'])
         taskdb.father = json.dumps(dct['father'])
         taskdb.time_create = strp(dct['time_stamp']['create'])
-        if dct['time_stamp']['start'] is not None:
+        if dct['time_stamp']['start'] != 'None':
             taskdb.time_start = strp(dct['time_stamp']['start'])
-        if dct['time_stamp']['end'] is not None:
+        if dct['time_stamp']['end'] != 'None':
             taskdb.time_end = strp(dct['time_stamp']['end'])
         taskdb.is_root = dct['is_root']
         taskdb.script_file = json.dumps(dct['script_file'])

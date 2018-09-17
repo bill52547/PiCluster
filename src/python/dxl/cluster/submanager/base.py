@@ -21,7 +21,7 @@ def is_completed(task):
         complete = (subs.filter(lambda t:t.state==base.State.Complete).to_list()
               .subscribe_on(rx.concurrency.ThreadPoolScheduler())
               .to_blocking().first())
-        return  len(complete) ==num_subs(task)
+        return  len(complete)/num_subs(task)
 
 
 def is_failed(task):
@@ -33,7 +33,7 @@ def is_failed(task):
         failure = (subs.filter(lambda t:t.state==base.State.Failed).to_list()
               .subscribe_on(rx.concurrency.ThreadPoolScheduler())
               .to_blocking().first())
-        return len(failure) >0
+        return len(failure)/num_subs(task)
 
 def resubmit_failure(task:Task):
     subs = find_sub(task)
