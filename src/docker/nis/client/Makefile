@@ -8,5 +8,6 @@ push :
 pull :
 	sudo docker pull $(repo)/$(name):latest
 run :
-	sudo docker run -it --network host --rm $(repo)/$(name)
+	#sudo docker run -it --network host --rm $(repo)/$(name)
+	sudo docker run -it --rm $(repo)/$(name)
 

@@ -1,4 +1,5 @@
-repo = 192.168.1.133:5000
+#repo = 192.168.1.133:5000
+repo = hub.tech-pi.com/env
 name = spack-ubuntu
 VERSION := $(shell cat version | tr -d '\n')
 image :

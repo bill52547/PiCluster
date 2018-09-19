@@ -1,4 +1,4 @@
-repo = 192.168.1.133:5000
+repo = hub.tech-pi.com/env
 name = slurm-worker
 VERSION := $(shell cat version | tr -d '\n')
 image :
@@ -9,5 +9,5 @@ push :
 pull :
 	sudo docker pull $(repo)/$(name):latest
 run :
-	sudo docker run -h $(name) -v $(SPACK_DEVELOP_ROOT):/opt/spack -v /mnt/gluster/hongxwing/Workspace/dxcluster/src/docker/slurm/config:/etc/slurm-llnl/  -it --rm $(repo)/$(name)
+	sudo docker run -h $(name) --network=host -v $(SPACK_DEVELOP_ROOT):/opt/spack -v /mnt/gluster/hongxwing/Workspace/dxcluster/src/docker/slurm/config:/etc/slurm-llnl/ -v /tmp/slurmtest:/tmp/ -it --rm $(repo)/$(name)
 
