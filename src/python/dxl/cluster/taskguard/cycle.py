@@ -4,7 +4,7 @@ from ..interactive import web,base
 from ..backend import srf,slurm
 from ..submanager.base import resubmit_failure
 from apscheduler.schedulers.blocking import BlockingScheduler
-from ..submanager.base import complete_rate,fail_rate
+from ..submanager.base import is_completed,is_failed
 from ..backend.resource import allocate_node
 
 
@@ -12,7 +12,7 @@ class CycleService:
     @classmethod
     def cycle(cls):
         graph_cycle()
-        backend_cycle()        
+        backend_cycle()
         #resubmit_cycle()
 
     @classmethod
@@ -33,23 +33,22 @@ def backend_cycle():
     running_tasks = (web.Request().read_all()
           .filter(lambda t:t.is_running or t.is_pending)
           .to_list().to_blocking().first())
-    if running_tasks==[None]:
+    if running_tasks==[]:
         return running_tasks
     else:
         for i in running_tasks:
             if i.worker==base.Worker.Slurm:
                 new_i=slurm.Slurm().update(i)
             else:
-                if fail_rate(i)!=0:
+                if is_failed(i):
                     new_i = i.update_state(base.State.Failed)
                 else:
-                    if complete_rate(i)==1:
+                    if is_completed(i):
                         new_i = i.update_state(base.State.Complete)
-                        # new_i = new_i.update_complete()
                     else:
                         new_i = i.update_state(base.State.Runing)
-            web.Request().update(new_i)                          
-       
+            web.Request().update(new_i)
+
 
 def graph_cycle():
     """
@@ -98,4 +97,4 @@ def get_depens():
         depens.append(i.dependency)
     return depens
 
-        
+

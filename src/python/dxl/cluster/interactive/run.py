@@ -5,8 +5,8 @@ import time
 
 
 class TaskSleep(Task):
-    def __init__(self,tid,desc,workdir,worker,ttype,state,time_stamp,dependency,is_root,data):
-        super().__init__(tid,desc,workdir,worker,ttype,state,time_stamp,dependency,is_root,data)
+    def __init__(self,tid=None,desc=None,workdir=None,worker=None,ttype=None,state=None,time_stamp=None,dependency=None,is_root=None,data=None):
+        super().__init__(tid=tid,desc=desc,workdir=workdir,worker=worker,ttype=ttype,father=None,state=state,time_stamp=time_stamp,dependency=dependency,is_root=is_root,data=data,script_file=None,info=None)
         
     def update(self,tid=None,desc=None,workdir=None,worker=None,ttype=None,state=None,
                 time_stamp=None,dependency=None,is_root=None,data=None):
@@ -33,7 +33,7 @@ class TaskSleep(Task):
         return TaskSleep(tid,desc,workdir,worker,ttype,state,time_stamp,dependency,is_root,data)
     
     def submit(self):
-        return self.update(state= State.Pending) 
+        return self.update(state= State.Pending)
             
     def run(self):
         time.sleep(10)

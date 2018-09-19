@@ -47,31 +47,31 @@ class Type(Enum):
 
 
 class TaskInfo:
-    def __init__(self,sid=None,nb_nodes=None,node_list=None,nb_GPU=None,args=None):
+    def __init__(self, sid=None, nb_nodes=None, node_list=None, nb_GPU=None, args=None):
         self.sid = sid
         if isinstance(self.sid, str):
             self.sid = int(self.sid)
-        if nb_nodes==None:
-            self.nb_nodes=0
+        if nb_nodes == None:
+            self.nb_nodes = 0
         else:
             self.nb_nodes = int(nb_nodes)
         self.node_list = node_list
-        if nb_GPU==None:
+        if nb_GPU == None:
             self.nb_GPU = 0
         else:
             self.nb_GPU = nb_GPU
-        if args==None:
-            self.args=''
+        if args == None:
+            self.args = ''
         else:
-            self.args=args
+            self.args = args
 
     @classmethod
-    def parse_dict(cls, dct:str):
+    def parse_dict(cls, dct: dict):
         return TaskInfo(nb_nodes=dct['nodes'],
-                   node_list=dct['node_list'],
-                   sid=dct['job_id'],
-                   nb_GPU=dct['GPUs'],
-                   args=dct['args'])
+                        node_list=dct['node_list'],
+                        sid=dct['job_id'],
+                        nb_GPU=dct['GPUs'],
+                        args=dct['args'])
 
     def to_dict(self) -> Dict[str, str]:
         return {
@@ -79,24 +79,25 @@ class TaskInfo:
             'nodes': self.nb_nodes,
             'node_list': self.node_list,
             'GPUs': self.nb_GPU,
-            'args':self.args
+            'args': self.args
         }
 
-    def update_node_list(self,node_list):
+    def update_node_list(self, node_list):
         return TaskInfo(sid=self.sid,
-               nb_nodes=self.nb_nodes,
-               node_list=node_list,
-               nb_GPU=self.nb_GPU,
-               args=self.args
-               )
+                        nb_nodes=self.nb_nodes,
+                        node_list=node_list,
+                        nb_GPU=self.nb_GPU,
+                        args=self.args
+                        )
 
-    def update_args(self,args):
+    def update_args(self, args):
         return TaskInfo(sid=self.sid,
-               nb_nodes=self.nb_nodes,
-               node_list=self.node_list,
-               nb_GPU=self.nb_GPU,
-               args=args
-               )
+                        nb_nodes=self.nb_nodes,
+                        node_list=self.node_list,
+                        nb_GPU=self.nb_GPU,
+                        args=args
+                        )
+
 
 class Task:
     json_tag = '__task__'
@@ -145,8 +146,16 @@ class Task:
         self.script_file = script_file
         if info is None:
             info = TaskInfo().to_dict()
-        self.info=info
+        self.info = info
 
+    # def __eq__(self, m):
+    #     return isinstance(m, Task) and m.unbox() == self.unbox()
+    #
+    # def unbox(self):
+    #
+    #     return [self.id, self.desc, self.workdir, self.worker, self.father, self.type, self.state, self.time_stamp,
+    #             self.dependency, self.is_root, self.data, self.script_file, self.info]
+    # return self.time_stamp
     @property
     def is_pending(self):
         return self.state == State.Pending
@@ -169,9 +178,8 @@ class Task:
 
     @property
     def is_depen_gpu(self):
-        if self.info !={}:
-            return self.info['GPUs'] !=0
-
+        if self.info != {}:
+            return self.info['GPUs'] != 0
 
     def command(self, generate_func=None) -> str:
         if generate_func is None:
@@ -179,77 +187,76 @@ class Task:
 
     def to_json(self):
         return json.dumps(self.serialization(self))
-    
-    def replace_dependency(self,sid1,sid2):
+
+    def replace_dependency(self, sid1, sid2):
         sids = self.dependency
-        for i in range (0,len(sids)):
+        for i in range(0, len(sids)):
             if sids[i] == sid1:
                 sids[i] = sid2
         self.dependency = sids
 
-    def update_state(self,new_statue):
+    def update_state(self, new_statue):
         return Task(tid=self.id,
-                 desc=self.desc,
-                 workdir=self.workdir,
-                 worker=self.worker,
-                 time_stamp=self.time_stamp,
-                 dependency=self.dependency,
-                 ttype=self.type,
-                 state=new_statue,
-                 is_root=self.is_root,
-                 data=self.data,
-                 father=self.father,
-                 script_file=self.script_file,
-                 info=self.info)
-    
+                    desc=self.desc,
+                    workdir=self.workdir,
+                    worker=self.worker,
+                    time_stamp=self.time_stamp,
+                    dependency=self.dependency,
+                    ttype=self.type,
+                    state=new_statue,
+                    is_root=self.is_root,
+                    data=self.data,
+                    father=self.father,
+                    script_file=self.script_file,
+                    info=self.info)
+
     def update_info(self, new_info):
         return Task(tid=self.id,
-                 desc=self.desc,
-                 workdir=self.workdir,
-                 worker=self.worker,
-                 time_stamp=self.time_stamp,
-                 dependency=self.dependency,
-                 ttype=self.type,
-                 state=self.state,
-                 is_root=self.is_root,
-                 data=self.data,
-                 father=self.father,
-                 script_file=self.script_file,
-                 info=new_info) 
+                    desc=self.desc,
+                    workdir=self.workdir,
+                    worker=self.worker,
+                    time_stamp=self.time_stamp,
+                    dependency=self.dependency,
+                    ttype=self.type,
+                    state=self.state,
+                    is_root=self.is_root,
+                    data=self.data,
+                    father=self.father,
+                    script_file=self.script_file,
+                    info=new_info)
 
     def update_start(self):
-        time_stamp.start = now()
+        self.time_stamp.start = now()
         return Task(tid=self.id,
-                 desc=self.desc,
-                 workdir=self.workdir,
-                 worker=self.worker,
-                 time_stamp=self.time_stamp,
-                 dependency=self.dependency,
-                 ttype=self.type,
-                 state=self.state,
-                 is_root=self.is_root,
-                 data=self.data,
-                 father=self.father,
-                 script_file=self.script_file,
-                 info=new_info)
+                    desc=self.desc,
+                    workdir=self.workdir,
+                    worker=self.worker,
+                    time_stamp=self.time_stamp,
+                    dependency=self.dependency,
+                    ttype=self.type,
+                    state=self.state,
+                    is_root=self.is_root,
+                    data=self.data,
+                    father=self.father,
+                    script_file=self.script_file,
+                    info=self.info)
 
     def updata_complete(self):
-        time_stamp.end = now()
+        self.time_stamp.end = now()
         return Task(tid=self.id,
-                 desc=self.desc,
-                 workdir=self.workdir,
-                 worker=self.worker,
-                 time_stamp=self.time_stamp,
-                 dependency=self.dependency,
-                 ttype=self.type,
-                 state=self.state,
-                 is_root=self.is_root,
-                 data=self.data,
-                 father=self.father,
-                 script_file=self.script_file,
-                 info=new_info)
-    
-    
+                    desc=self.desc,
+                    workdir=self.workdir,
+                    worker=self.worker,
+                    time_stamp=self.time_stamp,
+                    dependency=self.dependency,
+                    ttype=self.type,
+                    state=self.state,
+                    is_root=self.is_root,
+                    data=self.data,
+                    father=self.father,
+                    script_file=self.script_file,
+                    info=self.info)
+
     @classmethod
     def from_json(cls, s):
         check_json(s)
@@ -268,14 +275,14 @@ class Task:
                     'dependency': obj.dependency,
                     'father': obj.father,
                     'time_stamp': {
-                        'create': strf(obj.time_stamp.create),
-                        'start': strf(obj.time_stamp.start),
-                        'end': strf(obj.time_stamp.end)
+                        'create': str(obj.time_stamp.create),
+                        'start': str(obj.time_stamp.start),
+                        'end': str(obj.time_stamp.end)
                     },
                     'is_root': obj.is_root,
                     'data': obj.data,
                     'script_file': obj.script_file,
-                    'info': obj.info }
+                    'info': obj.info}
         raise TypeError(repr(obj) + " is not JSON serializable")
 
     @classmethod
@@ -301,14 +308,10 @@ class Task:
 
     def __str__(self):
         dct = self.serialization(self)
-        dct['time_stamp'] = {'create': strf(self.time_stamp.create),
-                             'start': strf(self.time_stamp.start),
-                             'end': strf(self.time_stamp.end)}
+        dct['time_stamp'] = {'create': str(self.time_stamp.create),
+                             'start': str(self.time_stamp.start),
+                             'end': str(self.time_stamp.end)}
         return json.dumps(dct, separators=(',', ':'), indent=4)
 
     def __hash__(self):
         return id(self)
-
-
-
-

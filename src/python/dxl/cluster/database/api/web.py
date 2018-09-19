@@ -44,7 +44,7 @@ class TasksResource(Resource):
 
     def put(self):
         try:
-            task = request.form['task']            
+            task = request.form['task']
             return Response(
                 DBprocess.update(task), 201, mimetype="application/json")
         except TaskNotFoundError as e:
@@ -69,7 +69,7 @@ def api_path(name, suffix=None, version=None, base=None):
         return "{base}/{name}/{suffix}".format(base=base, name=name, suffix=suffix)
 
 def add_api(api):   
-    print(api_path(c['name'], '<int:id>', c['version'], c['base']))
+    # print(api_path(c['name'], '<int:id>', c['version'], c['base']))
     api.add_resource(TaskResource,
                      api_path(c['name'], '<int:id>', c['version'], c['base']))
     api.add_resource(TasksResource,

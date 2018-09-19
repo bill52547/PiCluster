@@ -1,8 +1,10 @@
 import os
 from collections import UserDict
-from dxpy.filesystem import Path
+from jfs.api import Path
 _default = {
     'path': str(Path(os.environ.get('PATH_DATABASE')) / 'taskdb.db'),
+    # 'path': str(Path('/home/hongjiang/Desktop/dxcluster_config') / 'taskdb.db'),
+
     'name': 'task',
     'names': 'tasks',
     'use_web_api': True,
