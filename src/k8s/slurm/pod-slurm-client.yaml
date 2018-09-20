@@ -6,7 +6,7 @@ spec:
   nodeName: cs0
   #hostNetwork: true
   containers:
-  - image: hub.tech-pi.com/env/slurm-client:latest
+  - image: hub.tek-pi.com/env/slurm-client:latest
     name: slurm-client
     command: [ "/bin/bash", "-c", "--" ]
     args: [ "while true; do sleep 30; done;" ]
@@ -17,6 +17,10 @@ spec:
       name: spack
     - mountPath: /home/data
       name: data
+  #  ports:
+  #  - name: rest-slurm
+  #    containerPort: 1888
+  #    hostPort: 1888
   volumes:
   - name: slurm-config
     hostPath: 
