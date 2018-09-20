@@ -1,4 +1,4 @@
-repo = hub.tech-pi.com/env 
+repo = hub.tek-pi.com/env
 name = slurm-ctrl
 VERSION := $(shell cat version | tr -d '\n')
 image :

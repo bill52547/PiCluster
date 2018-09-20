@@ -8,8 +8,8 @@ spec:
   containers:
   - image: hub.tek-pi.com/env/slurm-client:latest
     name: slurm-client
-    command: [ "/bin/bash", "-c", "--" ]
-    args: [ "while true; do sleep 30; done;" ]
+    #command: [ "/bin/bash", "-c" ]
+    #args: [ "rest-slurm" ]
     volumeMounts:
     - mountPath: /etc/slurm-llnl
       name: slurm-config
