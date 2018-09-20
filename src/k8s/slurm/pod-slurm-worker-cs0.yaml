@@ -5,7 +5,7 @@ metadata:
 spec:
   nodeName: cs0
   containers:
-  - image: hub.tech-pi.com/env/slurm-worker:latest
+  - image: hub.tek-pi.com/env/slurm-worker:latest
     name: slurm-worker
     command: [ "/bin/bash", "-c", "--" ]
     args: [ "while true; do sleep 30; done;" ]

@@ -6,7 +6,7 @@ spec:
   nodeName: cs0
   #hostNetwork: true
   containers:
-  - image: hub.tech-pi.com/env/slurm-ctrl:latest
+  - image: hub.tek-pi.com/env/slurm-ctrl:latest
     name: slurm-ctrl
     command: [ "/bin/bash", "-c", "--" ]
     args: [ "while true; do sleep 30; done;" ]
