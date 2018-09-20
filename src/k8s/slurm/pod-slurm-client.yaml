@@ -1,10 +1,13 @@
-apiVersion: v1
+# ------------------- Dashboard Deployment ------------------- #
+
 kind: Deployment
+apiVersion: v1
 metadata:
-  name: slurm-client
   labels:
     slurm-app: sclient
+  name: slurm-client
 spec:
+  replicas: 1
   nodeName: cs0
   selector:
     matchLabels:
