@@ -3,6 +3,9 @@ kind: Service
 metadata:
   name: svc-slurm-ctrl
 spec:
+  selector:
+    name : sctrl
+  clusterIP: 10.100.100.100
   ports: 
   - port: 7321
     targetPort: 7321
@@ -13,5 +16,3 @@ spec:
   - port: 6818
     targetPort: 6818
     name: slurmd-port
-  selector:
-    app: sctrl

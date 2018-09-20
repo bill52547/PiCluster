@@ -4,8 +4,8 @@ metadata:
   name: svc-slurm-worker-cs0
 spec:
   selector:
-    name: sworker0
-  clusterIP: 10.100.100.102
+    name: sclient
+  clusterIP: 10.100.100.101
   ports: 
   - port: 7321
     targetPort: 7321
