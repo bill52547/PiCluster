@@ -5,7 +5,7 @@ metadata:
 spec:
   selector:
     name: sworker0
-  clusterIP: 10.100.100.102
+  #clusterIP: 10.100.100.102
   ports: 
   - port: 7321
     targetPort: 7321

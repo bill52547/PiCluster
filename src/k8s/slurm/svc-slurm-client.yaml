@@ -1,11 +1,13 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: svc-slurm-worker-cs0
+  labels:
+    slurm-app: sclient
+  name: svc-slurm-client
 spec:
+  type: NodePort
   selector:
-    name: sclient
-  clusterIP: 10.100.100.101
+    slurm-app: sclient
   ports: 
   - port: 7321
     targetPort: 7321
@@ -16,3 +18,8 @@ spec:
   - port: 6818
     targetPort: 6818
     name: slurmd-port
+  - port: 1888 
+    targetPort: 1888 
+    nodePort: 31888
+    name: rest-slurm
+     
