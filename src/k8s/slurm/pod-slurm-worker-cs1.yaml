@@ -24,7 +24,7 @@ spec:
       name: slurm-config
     - mountPath: /opt/spack
       name: spack
-    - mountPath: /home/data
+    - mountPath: /mnt/gluster
       name: data
   volumes:
   - name: slurm-config
@@ -37,5 +37,5 @@ spec:
       type: Directory
   - name: data
     hostPath:
-      path: /mnt/gluster/k8s-pv/data
+      path: /mnt/gluster
       type: Directory

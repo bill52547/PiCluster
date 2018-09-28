@@ -1,6 +1,7 @@
 #repo = 192.168.1.133:5000
 repo = hub.tek-pi.com/env
 name = slurm-client
+#name = slurm-client-withnis
 VERSION := $(shell cat version | tr -d '\n')
 image :
 	sudo cp ../munge.key .
@@ -18,5 +19,4 @@ run :
 			-v $(SPACK_DEVELOP_ROOT):/opt/spack \
 			-v /mnt/gluster/k8s-pv/slurm-config:/etc/slurm-llnl/\
 			-v  /mnt/gluster/k8s-pv/data:/home/data \
-			-p 1888:1888 \
 			-it --rm $(repo)/$(name)
