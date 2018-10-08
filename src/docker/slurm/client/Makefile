@@ -1,7 +1,7 @@
 #repo = 192.168.1.133:5000
 repo = hub.tek-pi.com/env
-name = slurm-client
-#name = slurm-client-withnis
+#name = slurm-client
+name = slurm-client-withnis
 VERSION := $(shell cat version | tr -d '\n')
 image :
 	sudo cp ../munge.key .
@@ -15,7 +15,6 @@ pull :
 
 run :
 	sudo docker run -h $(name) \
-			--network=host \
 			-v $(SPACK_DEVELOP_ROOT):/opt/spack \
 			-v /mnt/gluster/k8s-pv/slurm-config:/etc/slurm-llnl/\
 			-v  /mnt/gluster/k8s-pv/data:/home/data \
