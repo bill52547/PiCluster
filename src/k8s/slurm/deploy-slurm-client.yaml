@@ -1,0 +1,96 @@
+# ------------------- Dashboard Deployment ------------------- #
+
+apiVersion: apps/v1beta1 
+kind: Deployment
+metadata:
+  labels:
+    slurm-app: sclient
+  name: slurm-client
+spec:
+  replicas: 1
+  #nodeName: cs0
+  selector:
+    matchLabels:
+      slurm-app: sclient
+  template:
+    metadata:
+      labels:
+        slurm-app: sclient
+    spec:
+      containers:
+      - image: hub.tek-pi.com/env/slurm-client:latest
+        name: slurm-client
+        command: [ "/bin/bash", "-c" ]
+        args: 
+        - /etc/profile.d/startup.sh;
+          while true; do 
+            sleep 3600; 
+          done;
+        ports:
+        - containerPort: 7321
+          containerPort: 6817
+          containerPort: 6818
+          containerPort: 1888
+        volumeMounts:
+        - mountPath: /etc/slurm-llnl
+          name: slurm-config
+        - mountPath: /opt/spack
+          name: spack
+        - mountPath: /home/data
+          name: data
+      volumes:
+      - name: slurm-config
+        hostPath: 
+          path: /mnt/gluster/k8s-pv/slurm-config
+          type: Directory
+      - name: spack
+        hostPath:
+          path: /mnt/nfs/spack
+          type: Directory
+      - name: data
+        hostPath:
+          path: /mnt/gluster/k8s-pv/data
+          type: Directory
+
+
+## ---------------- slurm client svc ---------------- #
+#apiVersion: v1
+#kind: Service
+#metadata:
+#  labels:
+#    slurm-app: sclient
+#  name: svc-slurm-client
+#spec:
+#  type: ClusterIP  
+#  selector: 
+#    slurm-app: sclient
+#  ports:
+#  - port: 7321
+#    targetPort: 7321
+#    name: scheduler-port
+#  - port: 6817
+#    targetPort: 6817
+#    name: slurmctld-port
+#  - port: 6818
+#    targetPort: 6818
+#    name: slurmd-port
+#  - port: 1888
+#    targetPort: 1888
+#    name: rest-slurm
+
+## -------------- expose rest slurm svc -------------- #
+#apiVersion: v1
+#kind: Service
+#metadata:
+#  labels:
+#    slurm-app: sclient
+#  name: svc-rest-slurm
+#spec:
+#  type: NodePort
+#  selector:
+#    slurm-app: sclient
+#  ports:
+#  - port: 1888
+#    targetPort: 1888
+#    nodePort: 31888
+#    name: rest-slurm

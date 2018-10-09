@@ -102,3 +102,6 @@ ENV/
 .mypy_cache/
 munge.key
 .idea/
+
+# MAC folder config
+*/.DS_store

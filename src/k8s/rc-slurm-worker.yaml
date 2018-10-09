@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: slurm-worker
+spec: 
+  replicas: 1
+  template:
+    metadata:
+      name: slurm-worker
+      labels:
+        app: slurm-worker
+    spec:
+      containers:
+      - image: hub.tech-pi.com/env/slurm-worker:latest
+        name: slurm-worker
+        command: [ "/bin/bash", "-c", "--" ]
+        args: [ "while true; do sleep 30; done;" ]
+        volumeMounts:
+        - mountPath: /etc/slurm-llnl
+          name: slurm-config
+        - mountPath: /opt/spack
+          name: spack
+      volumes:
+      - name: slurm-config
+        hostPath: 
+          path: /mnt/gluster/k8s-pv/slurm-config
+          type: Directory
+      - name: spack
+        hostPath:
+          path: /mnt/gluster/k8s-pv/spack
+          type: Directory
