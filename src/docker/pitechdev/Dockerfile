@@ -8,6 +8,6 @@ RUN apt-get update && apt-get install -y git curl build-essential nano environme
 #RUN useradd spack
 #USER spack
 ADD startup.sh /etc/profile.d
-ADD proxychains.conf /etc/proxychains.conf
+#ADD proxychains.conf /etc/proxychains.conf
 ENV FORCE_UNSAFE_CONFIGURE 1
 ENTRYPOINT source /etc/profile.d/startup.sh && /bin/bash
