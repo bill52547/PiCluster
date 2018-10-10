@@ -14,4 +14,7 @@ dev :
 	sudo docker run --network host -v $(SPACK_DEVELOP_ROOT):/opt/spack -it --rm $(repo)/$(name)
 test :
 	sudo docker run -v $(SPACK_DEVELOP_ROOT):/opt/spack -it --rm ubuntu:16.04
-
+static:
+	sudo docker run --name dev-zql  --network host -v $(SPACK_DEVELOP_ROOT):/opt/spack -v /mnt:/mnt -p 22000:22  -it -d  $(repo)/$(name)
+runs:
+	sudo docker exec -it dev-zql bash
