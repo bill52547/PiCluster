@@ -1,0 +1,21 @@
+# ---------------- slurm client svc ---------------- #
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    slurm-app: sctrl
+  name: svc-slurm-ctrl
+spec:
+  type: ClusterIP
+  selector:
+    slurm-app: sctrl
+  ports:
+  - port: 7321
+    targetPort: 7321
+    name: scheduler-port
+  - port: 6817
+    targetPort: 6817
+    name: slurmctld-port
+  - port: 6818
+    targetPort: 6818
+    name: slurmd-port

@@ -19,19 +19,19 @@ from .base import Cluster
 # from .forcluster import scancel,sbatch,squeue
 
 def scontrol_url(tid):
-    return f'http://www.tech-pi.com:1888/api/v1/slurm/scontrol?job_id={tid}'
+    return f'http://www.tek-pi.com:1888/api/v1/slurm/scontrol?job_id={tid}'
 
 
 def scancel_url(tid):
-    return 'http://www.tech-pi.com:1888/api/v1/slurm/scancel?job_id={}'.format(tid)
+    return 'http://www.tek-pi.com:1888/api/v1/slurm/scancel?job_id={}'.format(tid)
 
 
 def squeue_url():
-    return 'http://www.tech-pi.com:1888/api/v1/slurm/squeue'
+    return 'http://www.tek-pi.com:1888/api/v1/slurm/squeue'
 
 
 def sbatch_url(sargs, file, work_directory):
-    return f'http://www.tech-pi.com:1888/api/v1/slurm/sbatch?arg={sargs}&file={file}&work_dir={work_directory}'
+    return f'http://www.tek-pi.com:1888/api/v1/slurm/sbatch?arg={sargs}&file={file}&work_dir={work_directory}'
 
 
 class SlurmStatue(Enum):
@@ -164,7 +164,16 @@ def squeue() -> 'Observable[TaskSlurmInfo]':
 
 
 def sbatch(workdir: Directory, filename, args):
+    url_ = sbatch_url(args, filename, workdir)
     result = requests.post(sbatch_url(args, filename, workdir)).json()
+    with open('/tmp/output.txt', 'a') as fout:
+        print(type(result), result, file=fout)
+        try:
+           print(result['job_id'], file=fout)
+        except Exception as e:
+           print(e, file=fout)
+           print(result, file=fout)
+           raise ValueError(str(e)+"result:"+result+"URL!!!:"+url_)
     return result['job_id']
 
 

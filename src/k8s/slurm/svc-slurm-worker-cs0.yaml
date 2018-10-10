@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-slurm-worker-cs0
+spec:
+  selector:
+    name: sworker0
+  #clusterIP: 10.100.100.102
+  ports: 
+  - port: 7321
+    targetPort: 7321
+    name: scheduler-port
+  - port: 6817
+    targetPort: 6817
+    name: slurmctld-port
+  - port: 6818
+    targetPort: 6818
+    name: slurmd-port

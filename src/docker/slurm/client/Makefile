@@ -9,9 +9,10 @@ push :
 	sudo docker push $(repo)/$(name):latest
 pull :
 	sudo docker pull $(repo)/$(name):latest
+
 run :
-	sudo docker run -h $(name) --network=host \
-                                   -v $(SPACK_ROOT):/opt/spack \
-                                   -v /home/qinglong/dxcluster/src/k8s/slurm-conf:/etc/slurm-llnl/ \
-                                   -v /tmp/slurmtest:/tmp/ \
-                                   -it --rm $(repo)/$(name)
+	sudo docker run -h $(name) \
+			-v $(SPACK_DEVELOP_ROOT):/opt/spack \
+			-v /mnt/gluster/k8s-pv/slurm-config:/etc/slurm-llnl/\
+			-v  /mnt/gluster/k8s-pv/data:/home/data \
+			-it --rm $(repo)/$(name)
