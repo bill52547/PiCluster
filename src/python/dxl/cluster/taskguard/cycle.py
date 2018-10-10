@@ -18,7 +18,7 @@ class CycleService:
     @classmethod
     def start(cls,cycle_intervel=None):
         scheduler = BlockingScheduler()
-        scheduler.add_job(cls.cycle,'interval',seconds=10)
+        scheduler.add_job(cls.cycle,'interval',seconds=20)
         try:
             cls.cycle()
             scheduler.start()

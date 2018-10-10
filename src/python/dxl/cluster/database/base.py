@@ -71,11 +71,13 @@ class DBprocess:
         cls.get_or_create_session().add(task_db)
         cls.get_or_create_session().commit()
         task_db = cls.get_or_create_session().query(TaskDB).get(task_db.id)
+        cls.clear_session()
         return task_db.id
     
     @classmethod
     def read_taskdb(cls, tid):
         task_db = cls.get_or_create_session().query(TaskDB).get(tid)
+        cls.clear_session()
         if task_db is None:
             raise TaskNotFoundError(tid)
         else:
@@ -98,10 +100,12 @@ class DBprocess:
         """
         if filter_func is None:
             def filter_func(x): return True
-        return (rx.Observable
+        all_task= (rx.Observable
                 .from_(cls.get_or_create_session().query(TaskDB).all())
                 .filter(filter_func)
                 .map(cls.db2json))
+        cls.clear_session()
+        return all_task
 
     @classmethod
     def delete(cls, tid):    
@@ -109,11 +113,13 @@ class DBprocess:
         if t is not None:
             cls.get_or_create_session().delete(t)
             cls.get_or_create_session().commit()
+            cls.clear_session()
 
     @classmethod
     def update(cls, task_json):
         cls.json2db_update(task_json)
         cls.get_or_create_session().commit()
+        cls.clear_session()
 
     @classmethod
     def json2db_update(cls, s):
