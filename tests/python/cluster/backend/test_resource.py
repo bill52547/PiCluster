@@ -1,5 +1,5 @@
-from dxpy.time.timestamps import TaskStamp
-from dxpy.time.utils import strp
+from dxl.cluster.time.timestamps import TaskStamp
+from dxl.cluster.time.utils import strp
 from dxl.cluster.database.base import *
 from dxl.cluster.backend import resource
 from dxl.cluster.backend.resource import *

@@ -1,8 +1,8 @@
 from .run import TaskSleep
 from . import base
 from .base import Task,State
-from dxpy.time.timestamps import TaskStamp
-from dxpy.time.utils import strp
+from dxl.cluster.time.timestamps import TaskStamp
+from dxl.cluster.time.utils import strp
 
 
 

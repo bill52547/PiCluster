@@ -1,7 +1,7 @@
 import unittest
 import pytest
 import sqlalchemy
-from dxpy.time.utils import strp
+from dxl.cluster.time.utils import strp
 from dxl.cluster.config import config
 from dxl.cluster.database.base import DBprocess
 from dxl.cluster.database.model import *

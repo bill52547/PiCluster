@@ -2,8 +2,8 @@ import copy
 import unittest
 import json
 from dxl.cluster.interactive import base
-from dxpy.time.timestamps import TaskStamp
-from dxpy.time.utils import strp
+from dxl.cluster.time.timestamps import TaskStamp
+from dxl.cluster.time.utils import strp
 
 from dxl.cluster.interactive.base import State, TaskInfo
 

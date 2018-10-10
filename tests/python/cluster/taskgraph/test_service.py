@@ -2,9 +2,8 @@
 from dxl.cluster.interactive import web
 from dxl.cluster.interactive import base
 from dxl.cluster.interactive.run import TaskSleep
-from dxpy.time.timestamps import TaskStamp
-from dxpy.time.utils import strp
-from dxpy.time.utils import now
+from dxl.cluster.time.timestamps import TaskStamp
+from dxl.cluster.time.utils import strp
 import unittest
 import rx
 

@@ -12,6 +12,7 @@ setup(name='dxl-cluster',
       install_requires=[
           'click',
           'rx',
+          'pyyaml'
       ],
       scripts=[],
       zip_safe=False)

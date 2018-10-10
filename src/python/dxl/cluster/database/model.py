@@ -4,7 +4,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy import create_engine
 
-from dxpy.time.utils import now
+from dxl.cluster.time.utils import now
 
 from ..config import config as c
 
