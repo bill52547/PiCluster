@@ -21,6 +21,6 @@ task1 = base.Task(desc='test', workdir='/tmp/test',
 # class TestDemon(unittest.TestCase):
 #     def test_cycle(self):
 #         service.DemonService().cycle()
-#         r = web.Request().read(2)
+#         r = api.Request().read(2)
 #         assert r.state==base.State.Pending
 #

@@ -8,7 +8,7 @@ import yaml
 
 @click.command()
 def start(): 
-    """ start task database web service """
+    """ start task database api service """
     app = Flask(__name__)
     api = Api(app)
     add_api(api)

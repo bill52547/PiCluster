@@ -8,7 +8,7 @@ def run():
 
 @click.command()
 def start():
-    """ start task database web service """
+    """ start task database api service """
     from ..cycle import CycleService
     CycleService.start()
     # input("Press any key to exit\n")
