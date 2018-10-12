@@ -8,7 +8,7 @@ from flask_restful import Api, Resource, reqparse
 from ..exceptions import TaskNotFoundError
 from ..base import DBprocess
 from ...config import config as c
-# from dxpy.web.urls import api_path
+# from dxpy.api.urls import api_path
 
 
 class TaskResource(Resource):

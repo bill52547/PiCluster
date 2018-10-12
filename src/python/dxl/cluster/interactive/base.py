@@ -17,9 +17,10 @@ Task fields:
 """
 import json
 from enum import Enum
-from dxpy.file_system.path import Path
-from dxpy.time.timestamps import TaskStamp
-from dxpy.time.utils import strf, strp, now
+# from dxpy.file_system.path import Path
+from jfs.path import Path
+from dxl.cluster.time.timestamps import TaskStamp
+from dxl.cluster.time.utils import strf, strp, now
 from ..database.base import check_json
 from typing import Dict, Iterable
 

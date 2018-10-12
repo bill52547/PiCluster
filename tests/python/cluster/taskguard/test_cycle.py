@@ -1,7 +1,7 @@
 import time
 
-from dxpy.time.timestamps import TaskStamp
-from dxpy.time.utils import strp
+from dxl.cluster.time.timestamps import TaskStamp
+from dxl.cluster.time.utils import strp
 
 from dxl.cluster.database.base import DBprocess
 from dxl.cluster.database.model import Database

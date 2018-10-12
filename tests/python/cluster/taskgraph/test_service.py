@@ -2,9 +2,8 @@
 from dxl.cluster.interactive import web
 from dxl.cluster.interactive import base
 from dxl.cluster.interactive.run import TaskSleep
-from dxpy.time.timestamps import TaskStamp
-from dxpy.time.utils import strp
-from dxpy.time.utils import now
+from dxl.cluster.time.timestamps import TaskStamp
+from dxl.cluster.time.utils import strp
 import unittest
 import rx
 
@@ -22,6 +21,6 @@ task1 = base.Task(desc='test', workdir='/tmp/test',
 # class TestDemon(unittest.TestCase):
 #     def test_cycle(self):
 #         service.DemonService().cycle()
-#         r = web.Request().read(2)
+#         r = api.Request().read(2)
 #         assert r.state==base.State.Pending
 #

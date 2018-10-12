@@ -1,7 +1,6 @@
 from dxl.cluster.interactive.run import TaskSleep
 from dxl.cluster.interactive.base import State, Worker, Type
 import unittest
-from dxpy.time.utils import now
 
 
 # from dxl.cluster.interactive import submit, run

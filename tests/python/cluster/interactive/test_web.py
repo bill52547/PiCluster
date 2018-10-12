@@ -3,8 +3,8 @@ from dxl.cluster.interactive import base
 from dxl.cluster.interactive import web
 import unittest
 import json
-from dxpy.time.timestamps import TaskStamp
-from dxpy.time.utils import strp
+from dxl.cluster.time.timestamps import TaskStamp
+from dxl.cluster.time.utils import strp
 import rx
 from dxl.cluster.config import config as c
 from dxl.cluster.database.model import Database
