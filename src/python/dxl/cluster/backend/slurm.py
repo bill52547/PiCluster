@@ -3,10 +3,11 @@ from enum import Enum
 from typing import Dict, Iterable
 import numpy as np
 import rx
-from dxpy.web.urls import req_url
+from dxl.cluster.web.urls import req_url
 import requests
 
-from dxpy.filesystem import Directory, File
+from jfs.directory import Directory
+from jfs.file import File
 
 import json
 import time

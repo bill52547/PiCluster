@@ -1,4 +1,4 @@
-from dxpy.web.urls import req_url
+from dxl.cluster.web.urls import req_url
 import json
 import rx
 from ..interactive import web,base

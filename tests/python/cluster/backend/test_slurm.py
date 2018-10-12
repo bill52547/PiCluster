@@ -5,7 +5,6 @@ from unittest.mock import patch, Mock
 import requests
 
 from dxl.cluster.backend import slurm
-from dxpy.filesystem import Directory, File
 from fs.memoryfs import MemoryFS
 
 from dxl.cluster.backend.slurm import TaskSlurmInfo, TaskSlurm, Slurm

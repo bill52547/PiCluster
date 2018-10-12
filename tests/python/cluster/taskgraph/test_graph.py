@@ -1,12 +1,12 @@
 import rx
-from dxpy.time.timestamps import TaskStamp
+from dxl.cluster.time.timestamps import TaskStamp
 
 from dxl.cluster.database.base import DBprocess
 from dxl.cluster.interactive.run import TaskSleep
 from dxl.cluster.interactive.base import State, Worker, Type, Task
 from dxl.cluster.taskgraph.base import Graph
 import unittest
-from dxpy.time.utils import now, strp
+from dxl.cluster.time.utils import now, strp
 from dxl.cluster.interactive import web, fortest
 from dxl.cluster.config import config as c
 from dxl.cluster.database.model import Database
