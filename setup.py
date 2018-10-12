@@ -12,7 +12,11 @@ setup(name='dxl-cluster',
       install_requires=[
           'click',
           'rx',
-          'pyyaml'
+          'pyyaml',
+          'attrs',
+          'marshmallow',
+          'flask',
+          'flask-restful'
       ],
       scripts=[],
       zip_safe=False)

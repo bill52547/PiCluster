@@ -6,16 +6,27 @@ from dxl.cluster.database2 import TaskTransactions
 from dxl.cluster.database2 import TaskState
 import marshmallow as ma
 
+API_VERSION = 1
+API_URL = f"/api/v{API_VERSION}/tasks"
+
 class TasksBind:
+    """
+    Bind to transactions to given TaskTransactions, thus fixed database.
+    """
     tasks = None
     @classmethod
     def set(cls, tasks: TaskTransactions):
+        if cls.tasks is not None:
+            if not tasks is cls.tasks:
+                raise ValueError("Tasks already binded to another TaskTransactions, plz clear it before set it to another.")
+            return
         cls.tasks = tasks
 
     @classmethod
     def clear(cls):
         cls.tasks = None
 
+# Serialization/deserialization utils
 class TaskStateField(ma.fields.Field):
     def _serialize(self, value, attr, obj):
         if value is None:
@@ -33,11 +44,17 @@ class TasksSchema(ma.Schema):
     finish = ma.fields.DateTime(allow_none=True)
     depens = ma.fields.List(ma.fields.Integer())
 
-
+schema = TasksSchema()
 
 class TaskResource(Resource):
     def get(self, id:int):
         try:
-            return TasksBind.tasks.read(id)
+            result = TasksBind.tasks.read(id)
+            return schema.dump(TasksBind.tasks.read(id)), 200
         except Exception as e:
-            pass
+            return {"error": str(e)}, 404
+
+def add_resource(api, tasks):
+    TasksBind.set(tasks)
+    api.add_resource(TaskResource, API_URL+"/<int:id>")
+
