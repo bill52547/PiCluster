@@ -7,6 +7,7 @@ import datetime
 import typing
 from .db import DataBase
 
+# TODO: move definition of Task to upper level, thus support from `dxl.cluster` import `Task`.
 
 class TaskState(enum.Enum):
     Unknown = 0
