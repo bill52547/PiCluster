@@ -1,4 +1,4 @@
-import dxl.cluster.database2  as dcd
+from dxl.cluster.database2 import Task, TaskState
 import arrow
 
 def test_create():
