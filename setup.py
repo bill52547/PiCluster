@@ -16,7 +16,8 @@ setup(name='dxl-cluster',
           'attrs',
           'marshmallow',
           'flask',
-          'flask-restful'
+          'flask-restful',
+          'arrow'
       ],
       scripts=[],
       zip_safe=False)
