@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 export SPACK_ROOT="/opt/spack"
 export PATH=$SPACK_ROOT/bin:$PATH
 . /opt/spack/share/spack/setup-env.sh

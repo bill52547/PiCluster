@@ -20,8 +20,9 @@ def engine():
     user = config.get('user', 'postgres')
     passwd = config.get('passwd', 'mysecretpassword')
     database = config.get('database', 'postgres')
+    ip = config.get('ip', '127.0.0.1')
     port = config.get('port', '8080')
-    return create_engine(f"postgresql://{user}:{passwd}@localhost:{port}/{database}")
+    return create_engine(f"postgresql://{user}:{passwd}@{ip}:{port}/{database}")
 
 
 def maker(eng):
@@ -33,13 +34,14 @@ class DataBase:
     user: str = 'postgres'
     passwd: str = 'mysecretpassword'
     database: str = 'postgres'
+    ip: str = '127.0.0.1'
     port: str = '8080'
     maker: typing.Any = None
     engine: typing.Any = None
 
     def get_or_create_engine(self):
         if self.engine is None:
-            self.engine = create_engine(f"postgresql://{self.user}:{self.passwd}@localhost:{self.port}/{self.database}")
+            self.engine = create_engine(f"postgresql://{self.user}:{self.passwd}@{self.ip}:{self.port}/{self.database}")
         return self.engine
 
     def get_or_create_maker(self):

@@ -119,7 +119,7 @@ class Task:
                  info=None):
         self.id = tid
         self.desc = desc
-        self.workdir = Path(workdir).abs
+        self.workdir = workdir #Path(workdir).abs
         if worker is None:
             worker = Worker.NoAction
         self.worker = worker

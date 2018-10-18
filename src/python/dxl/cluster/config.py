@@ -2,7 +2,7 @@ import os
 from collections import UserDict
 from jfs.api import Path
 _default = {
-    'path': str(Path(os.environ.get('PATH_DATABASE')) / 'taskdb.db'),
+    # 'path': str(Path(os.environ.get('PATH_DATABASE')) / 'taskdb.db'),
     # 'path': str(Path('/home/hongjiang/Desktop/dxcluster_config') / 'taskdb.db'),
 
     'name': 'task',
@@ -12,10 +12,10 @@ _default = {
     'default_state': 'BeforeSubmit',
 
     'host': '0.0.0.0',
-    'ip': '127.0.0.1',
+    'ip': '192..168.1.212',
     'port': 23300,
     'debug': False,
-    'version': 0.2,
+    'version': 1,
     'base': '/'
 }
 

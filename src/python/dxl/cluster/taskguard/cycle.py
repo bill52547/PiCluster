@@ -18,7 +18,7 @@ class CycleService:
     @classmethod
     def start(cls,cycle_intervel=None):
         scheduler = BlockingScheduler()
-        scheduler.add_job(cls.cycle,'interval',seconds=20)
+        scheduler.add_job(cls.cycle,'interval',seconds=10)
         try:
             cls.cycle()
             scheduler.start()
@@ -33,6 +33,7 @@ def backend_cycle():
     running_tasks = (web.Request().read_all()
           .filter(lambda t:t.is_running or t.is_pending)
           .to_list().to_blocking().first())
+
     if running_tasks==[]:
         return running_tasks
     else:
@@ -77,7 +78,9 @@ def graph_cycle():
 
 
 def get_graph_task():
-    beforesubmit = (web.Request().read_all().filter(lambda t: t.is_before_submit or t.is_running or t.is_pending)
+    beforesubmit = (web.Request().read_all().filter(lambda t: t.is_before_submit or
+                                                              t.is_running or
+                                                              t.is_pending)
               .to_list()
               .subscribe_on(rx.concurrency.ThreadPoolScheduler())
               .to_blocking().first())

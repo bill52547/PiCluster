@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Enum, Table, MetaData
+from sqlalchemy import Column, Integer, String, DateTime, Enum, Table, MetaData, ForeignKey
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import mapper
 import enum
@@ -29,6 +29,23 @@ tasks = Table('tasks', meta,
               Column('depens', postgresql.ARRAY(Integer, dimensions=1)))
 
 
+taskSlurm = Table(
+    'taskSlurm', meta,
+    Column('id', Integer, primary_key=True),
+    Column('tid', Integer, ForeignKey("tasks.id")),
+    Column('worker', String),
+    Column('workdir', String),
+    Column('scriptfile', String)
+)
+
+
+taskSimu = Table(
+    'taskSimu', meta,
+    Column('id', Integer, primary_key=True),
+    Column('tid', Integer, ForeignKey("tasks.id"))
+)
+
+
 @attr.s(auto_attribs=True)
 class Task:
     id: typing.Optional[int] = None
@@ -40,7 +57,24 @@ class Task:
     depens: typing.Tuple[int] = ()
 
 
+@attr.s(auto_attribs=True)
+class TaskSlurm:
+    id: typing.Optional[int] = None
+    tid: typing.Optional[int] = None
+    worker: typing.Optional[str] = None
+    workdir: typing.Optional[str] = None
+    scriptfile: typing.Optional[str] = None
+
+
+@attr.s(auto_attribs=True)
+class TaskSimu:
+    id: typing.Optional[int] = None
+    tid: typing.Optional[int] = None
+
+
 mapper(Task, tasks)
+mapper(TaskSlurm, taskSlurm)
+mapper(TaskSimu, taskSimu)
 
 
 def create_all(database: DataBase):

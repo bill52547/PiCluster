@@ -16,6 +16,7 @@ def now(local=False):
     else:
         return datetime.datetime.utcnow()
 
+
 def api_root(version):
     return "/api/v{version}".format(version=version)
 
@@ -50,11 +51,13 @@ def connection_error_handle(func):
                 "Task database server connection failed. Details:\n{e}".format(e=e))
     return wrapper
 
+
 def url(tid=None):    
     if tid is None:
         return req_url(c['names'], 'localhost', c['port'], None, c['version'], c['base'])
     else:
         return req_url(c['name'], 'localhost', c['port'], tid, c['version'], c['base'])
+
 
 def parse_json(s: 'json string'):
     return Task.from_json(s)

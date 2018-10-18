@@ -14,8 +14,9 @@ def start():
     """ start task database api service """
     app = Flask(__name__)
     api = Api(app)
-    add_resource(api, TaskTransactions(DataBase()))
-    app.run(host="0.0.0.0", port=23300, debug=True)
+    db = DataBase(passwd='psql', ip='192.168.1.133')
+    add_resource(api, TaskTransactions(db))
+    app.run(host="192.168.1.212", port=23300, debug=True)
 
 # @click.command()
 # @click.argument("config", type=click.Path(exists=True))

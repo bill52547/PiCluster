@@ -1,5 +1,7 @@
+from dxl.cluster.database2 import TaskState
 from dxl.cluster.database2.model import Task
 from dxl.cluster.database2.db import DataBase
+from sqlalchemy import func
 import attr
 
 
@@ -27,3 +29,15 @@ class TaskTransactions:
             attr.evolve(to_update, **changes)
             sess.commit()
             return self.read(task_id)
+
+    def count_all(self):
+        with self.db.session() as sess:
+            return sess.query(Task).count()
+
+    def filter(self, state):
+        with self.db.session() as sess:
+            return sess.query(Task).filter_by(state=state).all()
+
+    def count_filter(self, state):
+        with self.db.session() as sess:
+            return sess.query(Task).filter_by(state=state).count()
