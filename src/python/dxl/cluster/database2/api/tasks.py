@@ -5,6 +5,7 @@ from flask_restful import Api, Resource, reqparse
 from dxl.cluster.database2 import TaskTransactions
 from dxl.cluster.database2 import TaskState, Task
 import marshmallow as ma
+import attr
 
 API_VERSION = 1
 API_URL = f"/api/v{API_VERSION}/tasks"
@@ -37,6 +38,7 @@ class TaskStateField(ma.fields.Field):
         return value.value
 
     def _deserialize(self, value, attr, data):
+        value = int(value)
         return TaskState(value)
 
 
@@ -51,6 +53,11 @@ class TasksSchema(ma.Schema):
 
 
 schema = TasksSchema()
+
+class TestTasksSchema(ma.Schema):
+    id = ma.fields.Integer(allow_none=True)
+    task_id = ma.fields.Integer(allow_none=True)
+    time = ma.fields.Integer(allow_none=True)
 
 
 class TasksResource(Resource):
@@ -78,9 +85,20 @@ class TasksResource(Resource):
             return {"error": f'state {args["state"]} not defined.'}, 404
 
     def post(self):
-        task = Task(**schema.load(request.json))
+        body = request.json
+        if body is None:
+            body = request.form
+        if body is None:
+            raise TypeError("No body data found.")
+        task = Task(**schema.load(body))
         result = TasksBind.tasks.create(task)
         return schema.dump(result), 200
+
+
+
+
+
+
 
 
 class TaskResource(Resource):
@@ -90,6 +108,15 @@ class TaskResource(Resource):
             return schema.dump(TasksBind.tasks.read(id)), 200
         except Exception as e:
             return {"error": str(e)}, 404
+
+    def patch(self, id:int):
+        body = request.json
+        if body is None:
+            body = request.form
+        if body is None:
+            raise TypeError("No body data found.")
+        task_patch = schema.load(body)
+        TasksBind.tasks.update(id, {k: v for k, v in task_patch.items() if v is not None} )
 
 
 class TaskAll(Resource):

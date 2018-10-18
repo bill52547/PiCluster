@@ -45,6 +45,12 @@ taskSimu = Table(
     Column('tid', Integer, ForeignKey("tasks.id"))
 )
 
+testTasks = Table(
+    'sleep_tasks', meta,
+    Column('id', Integer, primary_key=True),
+    Column('task_id', Integer, ForeignKey("tasks.id")),
+    Column('time', Integer),
+)
 
 @attr.s(auto_attribs=True)
 class Task:
@@ -56,6 +62,13 @@ class Task:
     finish: typing.Optional[datetime.datetime] = None
     depens: typing.Tuple[int] = ()
 
+@attr.s(auto_attribs=True)
+class TestTask:
+    task_id: int
+    time: int = 3
+    id: typing.Optional[int] = None
+
+mapper(TestTask, testTasks)
 
 @attr.s(auto_attribs=True)
 class TaskSlurm:
@@ -75,6 +88,7 @@ class TaskSimu:
 mapper(Task, tasks)
 mapper(TaskSlurm, taskSlurm)
 mapper(TaskSimu, taskSimu)
+
 
 
 def create_all(database: DataBase):
