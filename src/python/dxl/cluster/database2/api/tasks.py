@@ -4,6 +4,7 @@ from flask import Flask, Response, make_response, request, url_for
 from flask_restful import Api, Resource, reqparse
 from dxl.cluster.database2 import TaskTransactions
 from dxl.cluster.database2 import TaskState, Task
+from dxl.cluster.database2.model import TaskSlurm, TaskSimu
 import marshmallow as ma
 import attr
 
@@ -29,9 +30,10 @@ class TasksBind:
         cls.tasks = None
 
 
-# Serialization/deserialization utils
 class TaskStateField(ma.fields.Field):
-
+    """
+    Serialization/deserialization utils
+    """
     def _serialize(self, value, attr, obj):
         if value is None:
             return ''
@@ -54,10 +56,24 @@ class TasksSchema(ma.Schema):
 
 schema = TasksSchema()
 
-class TestTasksSchema(ma.Schema):
+
+class TaskSlurmSchema(ma.Schema):
     id = ma.fields.Integer(allow_none=True)
     task_id = ma.fields.Integer(allow_none=True)
-    time = ma.fields.Integer(allow_none=True)
+    worker = ma.fields.String(allow_none=True)
+    workdir = ma.fields.String(allow_none=True)
+    script = ma.fields.String(allow_none=True)
+
+
+taskSlurmSchema = TaskSlurmSchema()
+
+
+class TaskSimuSchema(ma.Schema):
+    id = ma.fields.Integer(allow_none=True)
+    taskSlurm_id = ma.fields.Integer(allow_none=True)
+
+
+taskSimuSchema = TaskSimuSchema()
 
 
 class TasksResource(Resource):
@@ -90,15 +106,22 @@ class TasksResource(Resource):
             body = request.form
         if body is None:
             raise TypeError("No body data found.")
-        task = Task(**schema.load(body))
-        result = TasksBind.tasks.create(task)
-        return schema.dump(result), 200
 
+        userTask = body["details"][0]["isusertask"]
+        taskBody = {k:v for k,v in body.items() if k not in ["details"]}
+        taskSlurmBody = {k:v for k,v in body["details"][0].items() if k not in ["isusertask"]}
 
+        task = Task(**schema.load(taskBody))
+        result_task = TasksBind.tasks.create(task)
 
+        taskSlurm = TaskSlurm(**taskSlurmSchema.load(taskSlurmBody))
+        result_taskSlurm = TasksBind.tasks.create_taskSlurm(taskSlurm, result_task.id)
 
+        if userTask:
+            result_taskSimu = TasksBind.tasks.create_taskSimu(TaskSimu(), result_taskSlurm.id)
+            return taskSimuSchema.dump(result_taskSimu), 200
 
-
+        return taskSlurmSchema.dump(result_taskSlurm), 200
 
 
 class TaskResource(Resource):
@@ -111,8 +134,10 @@ class TaskResource(Resource):
 
     def patch(self, id:int):
         body = request.json
+        print(body)
         if body is None:
             body = request.form
+            print(body)
         if body is None:
             raise TypeError("No body data found.")
         task_patch = schema.load(body)
@@ -142,12 +167,6 @@ class TaskAll(Resource):
 
         else:
             return {"error": f'state {args["state"]} not defined.'}, 404
-# class TaskStatistics(Resource):
-#     def get(self):
-#         try:
-#             result = TasksBind
-#
-
 
 
 def add_resource(api, tasks):
@@ -155,5 +174,3 @@ def add_resource(api, tasks):
     api.add_resource(TasksResource, API_URL) # /api/v1/tasks
     api.add_resource(TaskResource, API_URL+"/<int:id>") # /api/v1/tasks/<int:id
     api.add_resource(TaskAll, API_URL+"/count")
-
-

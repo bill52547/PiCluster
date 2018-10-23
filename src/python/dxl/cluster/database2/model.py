@@ -32,25 +32,27 @@ tasks = Table('tasks', meta,
 taskSlurm = Table(
     'taskSlurm', meta,
     Column('id', Integer, primary_key=True),
-    Column('tid', Integer, ForeignKey("tasks.id")),
+    Column('task_id', Integer, ForeignKey("tasks.id")),
     Column('worker', String),
     Column('workdir', String),
-    Column('scriptfile', String)
+    Column('script', String)
 )
 
 
 taskSimu = Table(
     'taskSimu', meta,
     Column('id', Integer, primary_key=True),
-    Column('tid', Integer, ForeignKey("tasks.id"))
+    Column('taskSlurm_id', Integer, ForeignKey("taskSlurm.id")),
+    # Column('workdir', String),
+    # Column('depens', postgresql.ARRAY(Integer, dimensions=1))
 )
 
-testTasks = Table(
-    'sleep_tasks', meta,
-    Column('id', Integer, primary_key=True),
-    Column('task_id', Integer, ForeignKey("tasks.id")),
-    Column('time', Integer),
-)
+# testTasks = Table(
+#     'sleep_tasks', meta,
+#     Column('id', Integer, primary_key=True),
+#     Column('task_id', Integer, ForeignKey("tasks.id")),
+#     Column('time', Integer),
+# )
 
 @attr.s(auto_attribs=True)
 class Task:
@@ -62,27 +64,29 @@ class Task:
     finish: typing.Optional[datetime.datetime] = None
     depens: typing.Tuple[int] = ()
 
-@attr.s(auto_attribs=True)
-class TestTask:
-    task_id: int
-    time: int = 3
-    id: typing.Optional[int] = None
-
-mapper(TestTask, testTasks)
+# @attr.s(auto_attribs=True)
+# class TestTask:
+#     task_id: int
+#     time: int = 3
+#     id: typing.Optional[int] = None
+#
+# mapper(TestTask, testTasks)
 
 @attr.s(auto_attribs=True)
 class TaskSlurm:
     id: typing.Optional[int] = None
-    tid: typing.Optional[int] = None
+    task_id: typing.Optional[int] = None
     worker: typing.Optional[str] = None
     workdir: typing.Optional[str] = None
-    scriptfile: typing.Optional[str] = None
+    script: typing.Optional[str] = None
 
 
 @attr.s(auto_attribs=True)
 class TaskSimu:
     id: typing.Optional[int] = None
-    tid: typing.Optional[int] = None
+    taskSlurm_id: typing.Optional[int] = None
+    # workdir: typing.Optional[str] = None
+    # depens: typing.Tuple[int] = ()
 
 
 mapper(Task, tasks)

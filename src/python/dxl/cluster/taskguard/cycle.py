@@ -12,69 +12,78 @@ import requests
 scheduler = rx.concurrency.ThreadPoolScheduler(4)
 
 
-
 class CycleService:
     @classmethod
     def cycle(cls):
         # graph_cycle()
         # backend_cycle()
-        #resubmit_cycle()
-        # create2pending()
-        runtask()
+        # resubmit_cycle()
+        create2pending()
+        # runtask()
 
     @classmethod
     def start(cls,cycle_intervel=None):
         scheduler = BlockingScheduler()
-        scheduler.add_job(cls.cycle,'interval',seconds=10)
+        scheduler.add_job(cls.cycle, 'interval', seconds=10)
         try:
             cls.cycle()
             scheduler.start()
         except (KeyboardInterrupt, SystemExit):
             pass
 
-_GET_API = "http://localhost:23300/api/v1/tasks"
+
+_GET_API = "http://0.0.0.0:23300/api/v1/tasks"
 from dxl.cluster.database2.api.tasks import schema
 from dxl.cluster.database2.model import Task, TaskState
 def create2pending():
     def query(observer):
-        result = requests.request("GET", _GET_API+"?state=0").json()
+        result = requests.request("GET", _GET_API+"?state=1").json()
         for r in result:
             t = Task(**schema.load(r))
-            print(t)
             observer.on_next(t)
         observer.on_completed()
 
     def to_pending(task):
-        # print(task)
-        # return rx.Observable.create(lambda : requests.request("PATCH", _GET_API+f"/{task.id}", data={"state": TaskState.Pending.value}))
-        proc = lambda : requests.request("PATCH", _GET_API+f"/{task.id}", data={"state": TaskState.Pending.value})
+        proc = lambda: requests.request("PATCH",
+                                         _GET_API+f"/{task.id}",
+                                         data={"state": TaskState.Pending.value})
         return proc().json()
 
+    (rx.Observable.create(query)
+     .map(to_pending)
+     .subscribe_on(scheduler)
+     .subscribe(lambda t: print(f'Task {t.id} is ready to go (pending).')))
 
-    tasks = (rx.Observable.create(query)
-             .map(to_pending)
-             .subscribe_on(scheduler)
-             .subscribe(lambda t: print(t)))
 
 from dxl.cluster.backend.test_sleep import TaskSleepBackend
 
-def runtask():
-    def to_complete(task_id):
-        requests.request("PATCH", _GET_API+f"/{task_id}", data={'state': TaskState.Completed.value})
-        return task_id
 
+def runtask():
     def query(observer):
-        result = requests.request("GET", _GET_API).json()
+        result = requests.request("GET", _GET_API+"?state=2").json()
         for r in result:
             t = Task(**schema.load(r))
             if t.state == TaskState.Pending:
                 observer.on_next(t)
         observer.on_completed()
 
+    def to_complete(task_id):
+        requests.request("PATCH", _GET_API+f"/{task_id}", data={'state': TaskState.Completed.value})
+        return task_id
+
     (rx.Observable.create(query)
      .flat_map(lambda t: TaskSleepBackend.submit(t.id))
      .map(to_complete)
-     .subscribe(lambda task_id: print(task_id)))
+     .subscribe(lambda task_id: print(f'Task {task_id} is running.')))
+
+
+
+
+
+
+
+
+
 
 
 
@@ -142,12 +151,14 @@ def get_graph_task():
               .to_blocking().first())
     return beforesubmit
 
+
 def get_nodes():
     nodes = []
     tasks = get_graph_task()
     for i in tasks:
         nodes.append(i.id)
     return nodes
+
 
 def get_depens():
     depens = []

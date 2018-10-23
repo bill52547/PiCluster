@@ -21,6 +21,7 @@ def assert_same_length(arrays, names=None):
             names = [repr(a) for a in arrays]
         raise NotEqualLengthError(names, lens)
 
+
 class DepensGraph:
     def __init__(self, nodes=None, depens=None):
         """

@@ -4,6 +4,9 @@ from flask import Flask
 from dxl.cluster.database2.api.tasks import add_resource
 from dxl.cluster.database2 import TaskTransactions, DataBase
 import yaml
+from dxl.core.debug import enter_debug
+
+
 
 @click.group()
 def database():
@@ -12,6 +15,7 @@ def database():
 @database.command()
 def start():
     """ start task database api service """
+    enter_debug()
     app = Flask(__name__)
     api = Api(app)
     db = DataBase(passwd='psql', ip='192.168.1.133')

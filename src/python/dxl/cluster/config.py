@@ -12,7 +12,7 @@ _default = {
     'default_state': 'BeforeSubmit',
 
     'host': '0.0.0.0',
-    'ip': '192..168.1.212',
+    'ip': '192.168.1.212',
     'port': 23300,
     'debug': False,
     'version': 1,
