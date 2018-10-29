@@ -53,7 +53,6 @@ class TaskTransactions:
         with self.db.session() as sess:
             to_update = sess.query(Task).get(task_id)
             for k, v in changes.items():
-                print(k, v)
                 setattr(to_update, k, v)
             sess.commit()
             return self.read(task_id)

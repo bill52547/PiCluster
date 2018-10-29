@@ -6,7 +6,7 @@ import rx
 
 import json
 
-from ..interactive.base import Task, State,Type
+from ..interactive.base import Task,State,Type
 from ..interactive import web
 from .base import Cluster
 

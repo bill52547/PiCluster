@@ -18,6 +18,14 @@ class TaskState(enum.Enum):
     Failed = 6
 
 
+class Worker(Enum):
+    NoAction = 0,
+    Local = 1,
+    MultiThreading = 2,
+    MultiProcessing = 3,
+    Slurm = 4
+
+
 meta = MetaData()
 
 tasks = Table('tasks', meta,
@@ -26,7 +34,7 @@ tasks = Table('tasks', meta,
               Column('create', DateTime(timezone=True)),
               Column('submit', DateTime(timezone=True)),
               Column('finish', DateTime(timezone=True)),
-              Column('depens', postgresql.ARRAY(Integer, dimensions=1)))
+              Column('depends', postgresql.ARRAY(Integer, dimensions=1)))
 
 
 taskSlurm = Table(
@@ -42,35 +50,20 @@ taskSlurm = Table(
 taskSimu = Table(
     'taskSimu', meta,
     Column('id', Integer, primary_key=True),
-    Column('taskSlurm_id', Integer, ForeignKey("taskSlurm.id")),
-    # Column('workdir', String),
-    # Column('depens', postgresql.ARRAY(Integer, dimensions=1))
+    Column('taskSlurm_id', Integer, ForeignKey("taskSlurm.id"))
 )
 
-# testTasks = Table(
-#     'sleep_tasks', meta,
-#     Column('id', Integer, primary_key=True),
-#     Column('task_id', Integer, ForeignKey("tasks.id")),
-#     Column('time', Integer),
-# )
 
 @attr.s(auto_attribs=True)
 class Task:
     id: typing.Optional[int] = None
     scheduler: typing.Optional[str] = None
-    state: TaskState = TaskState.Unknown
+    state: TaskState = TaskState.Created
     create: typing.Optional[datetime.datetime] = None
     submit: typing.Optional[datetime.datetime] = None
     finish: typing.Optional[datetime.datetime] = None
-    depens: typing.Tuple[int] = ()
+    depends: typing.List[int] = ()
 
-# @attr.s(auto_attribs=True)
-# class TestTask:
-#     task_id: int
-#     time: int = 3
-#     id: typing.Optional[int] = None
-#
-# mapper(TestTask, testTasks)
 
 @attr.s(auto_attribs=True)
 class TaskSlurm:
@@ -85,14 +78,11 @@ class TaskSlurm:
 class TaskSimu:
     id: typing.Optional[int] = None
     taskSlurm_id: typing.Optional[int] = None
-    # workdir: typing.Optional[str] = None
-    # depens: typing.Tuple[int] = ()
 
 
 mapper(Task, tasks)
 mapper(TaskSlurm, taskSlurm)
 mapper(TaskSimu, taskSimu)
-
 
 
 def create_all(database: DataBase):

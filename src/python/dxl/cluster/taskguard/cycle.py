@@ -4,7 +4,7 @@ from ..interactive import web,base
 from ..backend import srf,slurm
 from ..submanager.base import resubmit_failure
 from apscheduler.schedulers.blocking import BlockingScheduler
-from ..submanager.base import is_completed,is_failed
+from ..submanager.base import is_completed, is_failed
 from ..backend.resource import allocate_node
 
 import requests
@@ -18,18 +18,21 @@ class CycleService:
         # graph_cycle()
         # backend_cycle()
         # resubmit_cycle()
+        print("yo")
         create2pending()
+
         # runtask()
 
     @classmethod
-    def start(cls,cycle_intervel=None):
-        scheduler = BlockingScheduler()
-        scheduler.add_job(cls.cycle, 'interval', seconds=10)
-        try:
-            cls.cycle()
-            scheduler.start()
-        except (KeyboardInterrupt, SystemExit):
-            pass
+    def start(cls, cycle_intervel=None):
+        # scheduler = BlockingScheduler()
+        # scheduler.add_job(cls.cycle, 'interval', seconds=10)
+        # try:
+        #     cls.cycle()
+        #     scheduler.start()
+        # except (KeyboardInterrupt, SystemExit):
+        #     pass
+        cls.cycle()
 
 
 _GET_API = "http://0.0.0.0:23300/api/v1/tasks"
@@ -37,21 +40,25 @@ from dxl.cluster.database2.api.tasks import schema
 from dxl.cluster.database2.model import Task, TaskState
 def create2pending():
     def query(observer):
-        result = requests.request("GET", _GET_API+"?state=1").json()
+        result = requests.request("GET", _GET_API+"?state=2").json()
+        print(result)
+        print("LEN:", len(result))
         for r in result:
             t = Task(**schema.load(r))
+            print("Observer on:", t)
             observer.on_next(t)
+        print("LOOP DONE")
         observer.on_completed()
 
     def to_pending(task):
         proc = lambda: requests.request("PATCH",
                                          _GET_API+f"/{task.id}",
-                                         data={"state": TaskState.Pending.value})
+                                         data={"state": TaskState.Created.value})
         return proc().json()
 
     (rx.Observable.create(query)
      .map(to_pending)
-     .subscribe_on(scheduler)
+     # .subscribe_on(scheduler)
      .subscribe(lambda t: print(f'Task {t.id} is ready to go (pending).')))
 
 
@@ -96,10 +103,10 @@ def backend_cycle():
     任务状态更新
     """
     running_tasks = (web.Request().read_all()
-          .filter(lambda t:t.is_running or t.is_pending)
-          .to_list().to_blocking().first())
+                        .filter(lambda t:t.is_running or t.is_pending)
+                        .to_list().to_blocking().first())
 
-    if running_tasks==[]:
+    if running_tasks == []:
         return running_tasks
     else:
         for i in running_tasks:

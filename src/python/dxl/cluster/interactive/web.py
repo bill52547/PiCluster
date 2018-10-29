@@ -5,7 +5,8 @@ import rx
 
 from .exceptions import TaskDatabaseConnectionError, TaskNotFoundError
 from ..config import config as c
-from .base import Task,State
+from .base import Task
+from ..database2.model import TaskState
 
 import datetime
 
@@ -52,7 +53,13 @@ def connection_error_handle(func):
     return wrapper
 
 
-def url(tid=None):    
+def url(tid=None):
+    """
+    Url builder, works with helper functions api_root, api_path and req_url.
+
+    :param tid: Id of a task to be used to build a request url.
+    :return: Request url.
+    """
     if tid is None:
         return req_url(c['names'], 'localhost', c['port'], None, c['version'], c['base'])
     else:
@@ -65,14 +72,14 @@ def parse_json(s: 'json string'):
     
 class Request(Task):                 
     @connection_error_handle
-    def create(self,task):
+    def create(self, task):
         task_json = task.to_json()
         r = requests.post(url(), {'task': task_json}).json()
         task.id = r['id']
         return task
 
     @connection_error_handle
-    def read(self,tid):
+    def read(self, tid):
         r = requests.get(url(tid))
         if r.status_code == 200:
             return parse_json(r.text)  
@@ -86,14 +93,14 @@ class Request(Task):
         return (rx.Observable.from_(task).map(parse_json))
 
     @connection_error_handle
-    def update(self,task):
+    def update(self, task):
         task_json = task.to_json()
         r = requests.put(url(), {'task': task_json})
         if r.status_code == 404:
             raise TaskNotFoundError(task_json['id'])
 
     @connection_error_handle
-    def delete(self,tid):
+    def delete(self, tid):
         r = requests.delete(url(tid))
         if r.status_code == 404:
             raise TaskNotFoundError(tid)
@@ -101,7 +108,7 @@ class Request(Task):
 
 def submit(task): 
     task = Task.from_json(task.to_json())
-    task.state = State.Pending
+    task.state = TaskState.Pending
     Request().update(task)
     return task
 
@@ -109,7 +116,7 @@ def submit(task):
 def start(task):
     task = Task.from_json(task.to_json())
     task.start = now()
-    task.state = State.Runing
+    task.state = TaskState.Runing
     Request().update(task)
     return task
 
@@ -117,6 +124,6 @@ def start(task):
 def complete(task):
     task = Task.from_json(task.to_json())
     task.end = now()
-    task.state = State.Complete
+    task.state = TaskState.Complete
     Request().update(task)
     return task

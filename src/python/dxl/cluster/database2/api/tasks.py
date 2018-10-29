@@ -51,7 +51,7 @@ class TasksSchema(ma.Schema):
     create = ma.fields.DateTime(allow_none=True)
     submit = ma.fields.DateTime(allow_none=True)
     finish = ma.fields.DateTime(allow_none=True)
-    depens = ma.fields.List(ma.fields.Integer())
+    depends = ma.fields.List(ma.fields.Integer())
 
 
 schema = TasksSchema()
@@ -107,9 +107,13 @@ class TasksResource(Resource):
         if body is None:
             raise TypeError("No body data found.")
 
-        userTask = body["details"][0]["isusertask"]
-        taskBody = {k:v for k,v in body.items() if k not in ["details"]}
-        taskSlurmBody = {k:v for k,v in body["details"][0].items() if k not in ["isusertask"]}
+        taskBody = {k: v for k, v in body.items() if k not in ["details"]}
+        if len(body["details"]):
+            is_user_task = body["details"]["is_user_task"]
+            taskSlurmBody = {k:v for k,v in body["details"].items() if k not in ["is_user_task"]}
+        else:
+            is_user_task = False
+            taskSlurmBody = {}
 
         task = Task(**schema.load(taskBody))
         result_task = TasksBind.tasks.create(task)
@@ -117,7 +121,7 @@ class TasksResource(Resource):
         taskSlurm = TaskSlurm(**taskSlurmSchema.load(taskSlurmBody))
         result_taskSlurm = TasksBind.tasks.create_taskSlurm(taskSlurm, result_task.id)
 
-        if userTask:
+        if is_user_task:
             result_taskSimu = TasksBind.tasks.create_taskSimu(TaskSimu(), result_taskSlurm.id)
             return taskSimuSchema.dump(result_taskSimu), 200
 
@@ -134,14 +138,15 @@ class TaskResource(Resource):
 
     def patch(self, id:int):
         body = request.json
-        print(body)
+        # print(body)
         if body is None:
             body = request.form
-            print(body)
+            # print(body)
         if body is None:
             raise TypeError("No body data found.")
         task_patch = schema.load(body)
-        TasksBind.tasks.update(id, {k: v for k, v in task_patch.items() if v is not None} )
+        TasksBind.tasks.update(id, {k: v for k, v in task_patch.items() if v is not None})
+        return schema.dump(TasksBind.tasks.read(id)), 200
 
 
 class TaskAll(Resource):
