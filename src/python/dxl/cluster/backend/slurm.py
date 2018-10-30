@@ -32,7 +32,7 @@ def sbatch_url(args, filename, workdir):
     return f'http://www.tek-pi.com:1888/api/v1/slurm/sbatch?arg={args}&file={filename}&work_dir={workdir}'
 
 
-class SlurmStatue(Enum):
+class SlurmState(Enum):
     Running = 'R'
     Completing = 'CG'
     Completed = 'E'
@@ -40,17 +40,17 @@ class SlurmStatue(Enum):
     Failed = 'F'
 
 
-def slurm_statue2task_statue(s: SlurmStatue):
+def slurm_state2task_state(s: SlurmState):
     return {
-        SlurmStatue.Running: TaskState.Running ,
-        SlurmStatue.Completing: TaskState.Completed,
-        SlurmStatue.Completed: TaskState.Completed,
-        SlurmStatue.Pending: TaskState.Pending,
-        SlurmStatue.Failed: TaskState.Failed
+        SlurmState.Running: TaskState.Running ,
+        SlurmState.Completing: TaskState.Completed,
+        SlurmState.Completed: TaskState.Completed,
+        SlurmState.Pending: TaskState.Pending,
+        SlurmState.Failed: TaskState.Failed
     }[s]
 
 
-class ScontrolStatue(Enum):
+class ScontrolState(Enum):
     Pending = 'PENDING'
     Running = 'RUNNING'
     Suspended = 'SUSPENDED'
@@ -61,18 +61,18 @@ class ScontrolStatue(Enum):
     NodeFailed = 'NODE_FAILED'
 
 
-def scontrol_statue2task_statue(s: ScontrolStatue):
+def scontrol_state2task_state(s: ScontrolState):
     scontrol2state_mapping = {
-        ScontrolStatue.Pending: TaskState.Pending,
-        ScontrolStatue.Running: TaskState.Running,
-        ScontrolStatue.Suspended: TaskState.Running,
-        ScontrolStatue.Complete: TaskState.Completed,
-        ScontrolStatue.Failed: TaskState.Failed,
-        ScontrolStatue.Canceled: TaskState.Failed,
-        ScontrolStatue.Timeout: TaskState.Failed,
-        ScontrolStatue.NodeFailed: TaskState.Failed
+        ScontrolState.Pending: TaskState.Pending,
+        ScontrolState.Running: TaskState.Running,
+        ScontrolState.Suspended: TaskState.Running,
+        ScontrolState.Complete: TaskState.Completed,
+        ScontrolState.Failed: TaskState.Failed,
+        ScontrolState.Canceled: TaskState.Failed,
+        ScontrolState.Timeout: TaskState.Failed,
+        ScontrolState.NodeFailed: TaskState.Failed
     }
-    return scontrol2state_mapping[ScontrolStatue(s)]
+    return scontrol2state_mapping[ScontrolState(s)]
 
 
 class TaskSlurmInfo:
@@ -93,11 +93,11 @@ class TaskSlurmInfo:
         self.command = command
         self.usr = usr
         if state is None:
-            self.state = SlurmStatue('R')
-        elif isinstance(state, SlurmStatue):
+            self.state = SlurmState('R')
+        elif isinstance(state, SlurmState):
             self.state = state
         else:
-            self.state = SlurmStatue(state)
+            self.state = SlurmState(state)
         self.run_time = run_time
         if nb_nodes is None:
             self.nb_nodes = 0
@@ -177,6 +177,9 @@ def sid_from_submit(s: str):
 
 
 def squeue() -> 'Observable[TaskSlurmInfo]':
+    """
+    :return: Obserable of tasks retrived from slurm cluter using squeue command.
+    """
     infos = requests.get(squeue_url()).text
     info = json.loads(infos)
     return (rx.Observable.from_(info)
@@ -185,6 +188,13 @@ def squeue() -> 'Observable[TaskSlurmInfo]':
 
 
 def sbatch(workdir: Directory, filename, args="run.sh"):
+    """
+    Submitting new task.
+    :param workdir:
+    :param filename: NOT USED
+    :param args: Script file name "run.sh" by default.
+    :return:
+    """
     url_ = sbatch_url(args, filename, workdir)
     result = requests.post(sbatch_url(args, filename, workdir)).json()
     with open('/tmp/output.txt', 'a') as fout:
@@ -211,10 +221,10 @@ def scontrol(id: int):
     return result
 
 
-def get_statue(id: int):
+def get_state(id: int):
     if id is None:
         return False
-    state = scontrol_statue2task_statue(scontrol(id)['job_state'])
+    state = scontrol_state2task_state(scontrol(id)['job_state'])
     return state
 
 
@@ -228,14 +238,14 @@ def is_end(id):
     result = (squeue()
               .filter(find_id(id))
               .count().to_list().to_blocking().first())
-    return result[0] == SlurmStatue.Completed
+    return result[0] == SlurmState.Completed
 
 
 def is_complete(id):
     return is_end(id)
 
 
-def get_task_info(id: int) -> TaskSlurmInfo:
+def get_slurm_info(id: int) -> TaskSlurmInfo:
     result = squeue().filter(find_id(id)).to_list().to_blocking().first()
     if len(result) == 0:
         return None
@@ -246,7 +256,7 @@ class Slurm(Cluster):
     @classmethod
     def submit(cls, t: TaskSlurm):
         id = sbatch(t.workdir, t.script)
-        slurm_info = get_task_info(id)
+        slurm_info = get_slurm_info(id)
         new_info = TaskInfo(id=id,
                             nb_nodes=slurm_info.nb_nodes,
                             node_list=slurm_info.node_list)
@@ -262,7 +272,7 @@ class Slurm(Cluster):
         if t.task_id is None:
             return t
         else:
-            state = get_statue(t.task_id)
+            state = get_state(t.task_id)
             nt = t.update_state(state)
             return nt
 

@@ -137,16 +137,17 @@ class TaskResource(Resource):
             return {"error": str(e)}, 404
 
     def patch(self, id:int):
-        body = request.json
-        # print(body)
-        if body is None:
-            body = request.form
-            # print(body)
-        if body is None:
-            raise TypeError("No body data found.")
-        task_patch = schema.load(body)
-        TasksBind.tasks.update(id, {k: v for k, v in task_patch.items() if v is not None})
-        return schema.dump(TasksBind.tasks.read(id)), 200
+        try:
+            body = request.json
+            if body is None:
+                body = request.form
+            if body is None:
+                raise TypeError("No body data found.")
+            task_patch = schema.load(body)
+            TasksBind.tasks.update(id, {k: v for k, v in task_patch.items() if v is not None})
+            return schema.dump(TasksBind.tasks.read(id)), 200
+        except Exception as e:
+            return {"error": str(e)}, 404
 
 
 class TaskAll(Resource):
@@ -177,5 +178,5 @@ class TaskAll(Resource):
 def add_resource(api, tasks):
     TasksBind.set(tasks)
     api.add_resource(TasksResource, API_URL) # /api/v1/tasks
-    api.add_resource(TaskResource, API_URL+"/<int:id>") # /api/v1/tasks/<int:id
+    api.add_resource(TaskResource, API_URL+"/<int:id>") # /api/v1/tasks/<int:id>
     api.add_resource(TaskAll, API_URL+"/count")

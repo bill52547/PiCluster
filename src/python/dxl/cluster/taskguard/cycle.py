@@ -1,15 +1,22 @@
 import rx
+import requests
+from rx import Observer
+
 from ..taskgraph.base import Graph
-from ..interactive import web,base
-from ..backend import srf,slurm
+from ..interactive import web, base
+from ..backend import srf, slurm
 from ..submanager.base import resubmit_failure
+
 from apscheduler.schedulers.blocking import BlockingScheduler
 from ..submanager.base import is_completed, is_failed
 from ..backend.resource import allocate_node
 
-import requests
+from dxl.cluster.database2.api.tasks import schema
+from dxl.cluster.database2.model import Task, TaskState
+from dxl.cluster.backend.test_sleep import TaskSleepBackend
 
-scheduler = rx.concurrency.ThreadPoolScheduler(4)
+scheduler = rx.concurrency.ThreadPoolScheduler()
+_GET_API = "http://0.0.0.0:23300/api/v1/tasks"
 
 
 class CycleService:
@@ -18,71 +25,139 @@ class CycleService:
         # graph_cycle()
         # backend_cycle()
         # resubmit_cycle()
-        print("yo")
-        create2pending()
 
+        # print("*****************taskReset*****************")
+        # taskReset()
+
+        # print("*****************Create2Pending*****************")
+        # create2pending()
+        # print("********************runtask********************")
         # runtask()
+
+
 
     @classmethod
     def start(cls, cycle_intervel=None):
-        # scheduler = BlockingScheduler()
-        # scheduler.add_job(cls.cycle, 'interval', seconds=10)
-        # try:
-        #     cls.cycle()
-        #     scheduler.start()
-        # except (KeyboardInterrupt, SystemExit):
-        #     pass
-        cls.cycle()
+        scheduler = BlockingScheduler()
+        scheduler.add_job(cls.cycle, 'interval', seconds=10)
+        try:
+            cls.cycle()
+            scheduler.start()
+        except (KeyboardInterrupt, SystemExit):
+            pass
 
 
-_GET_API = "http://0.0.0.0:23300/api/v1/tasks"
-from dxl.cluster.database2.api.tasks import schema
-from dxl.cluster.database2.model import Task, TaskState
-def create2pending():
+def taskReset():
+
     def query(observer):
-        result = requests.request("GET", _GET_API+"?state=2").json()
-        print(result)
-        print("LEN:", len(result))
+        result = requests.request("GET", _GET_API).json()
         for r in result:
             t = Task(**schema.load(r))
-            print("Observer on:", t)
             observer.on_next(t)
-        print("LOOP DONE")
+        observer.on_completed()
+
+    def reset(task):
+        print(f"Task {task.id} is reset.")
+        return requests.request("PATCH",
+                                _GET_API+f"/{task.id}",
+                                data={"state": TaskState.Created.value}).json()
+
+    class _Observer(Observer):
+        def on_next(self, task):
+            reset(task)
+
+        def on_error(self, e):
+            print("Got error: %s" % e)
+
+        def on_completed(self):
+            print("taskReset Sequence completed")
+            print()
+
+    (rx.Observable.create(query)
+     .subscribe_on(scheduler)
+     .subscribe(_Observer()))
+
+
+def create2pending():
+
+    def query(observer):
+        result = requests.request("GET", _GET_API + "?state=1").json()
+        for r in result:
+            t = Task(**schema.load(r))
+            observer.on_next(t)
         observer.on_completed()
 
     def to_pending(task):
-        proc = lambda: requests.request("PATCH",
-                                         _GET_API+f"/{task.id}",
-                                         data={"state": TaskState.Created.value})
-        return proc().json()
+        """
+        Converting task state to TaskState.Pending
+        :param task: A task obj with TaskState specified in query method.
+        :return: Task info in json.
+        """
+        print(f"Task {task.id} is ready to go pending.")
+        return requests.request("PATCH",
+                                _GET_API+f"/{task.id}",
+                                data={"state": TaskState.Pending.value}).json()
+
+    class _Observer(Observer):
+        def on_next(self, task):
+            to_pending(task)
+
+        def on_error(self, e):
+            print("Got error: %s" % e)
+
+        def on_completed(self):
+            print("create2pending Sequence completed")
+            print()
 
     (rx.Observable.create(query)
-     .map(to_pending)
-     # .subscribe_on(scheduler)
-     .subscribe(lambda t: print(f'Task {t.id} is ready to go (pending).')))
-
-
-from dxl.cluster.backend.test_sleep import TaskSleepBackend
-
+     .subscribe_on(scheduler)
+     .subscribe(_Observer()))
 
 def runtask():
     def query(observer):
         result = requests.request("GET", _GET_API+"?state=2").json()
         for r in result:
             t = Task(**schema.load(r))
+            print(f"Task {t.id} to be submitted.")
             if t.state == TaskState.Pending:
                 observer.on_next(t)
         observer.on_completed()
 
-    def to_complete(task_id):
-        requests.request("PATCH", _GET_API+f"/{task_id}", data={'state': TaskState.Completed.value})
+    def to_submitted(task_id):
+        requests.request("PATCH",
+                         _GET_API+f"/{task_id}",
+                         data={'state': TaskState.Submitted.value})
         return task_id
 
-    (rx.Observable.create(query)
-     .flat_map(lambda t: TaskSleepBackend.submit(t.id))
-     .map(to_complete)
-     .subscribe(lambda task_id: print(f'Task {task_id} is running.')))
+    class _Observer(Observer):
+        def on_next(self, x):
+            to_submitted(x)
 
+        def on_error(self, e):
+            print("Got error: %s" % e)
+
+        def on_completed(self):
+            print("runtask Sequence completed")
+            print()
+
+    (rx.Observable.create(query)
+     .subscribe_on(scheduler)
+     .flat_map(lambda t: TaskSleepBackend.submit(t.id))
+     .map(to_submitted)
+     .subscribe(_Observer()))
+
+# 用slurm 查询任素状态，返回更新数据库
+def update_task_state():
+    def query(observer):
+        tasks = requests.request("GET", _GET_API).json()
+        for task in tasks:
+            t = Task(**schema.load(r))
+            print(f"Updating state of task {t.id}.")
+            if t.state == TaskState.Running or t.state == TaskState.Pending:
+                observer.on_next(t)
+        observer.on_completed()
+
+    def update_state(task_id):
 
 
 
@@ -173,5 +248,3 @@ def get_depens():
     for i in tasks:
         depens.append(i.dependency)
     return depens
-
-
