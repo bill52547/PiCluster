@@ -25,6 +25,8 @@ from ..database.base import check_json
 from typing import Dict, Iterable
 from ..database2.model import TaskState
 
+
+
 class State(Enum):
     BeforeSubmit = 0
     Pending = 1
@@ -194,7 +196,7 @@ class Task:
 
     @classmethod
     def from_json(cls, s):
-        check_json(s)
+        # check_json(s)
         return json.loads(s, object_hook=cls.deserialization)
 
     @classmethod
@@ -217,21 +219,14 @@ class Task:
                     depends=dct['depends'],
                     create=dct['create'],
                     submit=dct['submit'],
-                    finish=dct['finish'],
-                    details=dct['details'])
+                    finish=dct['finish'])
+                    # details=
+                    # )
         # return dct
 
     def __str__(self):
         dct = self.serialization(self)
         return json.dumps(dct, separators=(',', ':'), indent=4)
-
-    def __repr__(self):
-        dct = self.serialization(self)
-        dct["create"] = str(self.create)
-        dct["submit"] = str(self.submit)
-        dct["finish"] = str(self.finish)
-
-        return json.dumps(dct, separators=(',',':'), indent=4)
 
     def __hash__(self):
         return id(self)

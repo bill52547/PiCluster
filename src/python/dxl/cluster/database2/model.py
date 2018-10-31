@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, DateTime, Enum, Table, MetaData, ForeignKey
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import mapper
+import marshmallow as ma
 import enum
 import attr
 import datetime
@@ -83,6 +84,52 @@ class TaskSimu:
 mapper(Task, tasks)
 mapper(TaskSlurm, taskSlurm)
 mapper(TaskSimu, taskSimu)
+
+
+class TaskStateField(ma.fields.Field):
+    """
+    Serialization/deserialization utils
+    """
+    def _serialize(self, value, attr, obj):
+        if value is None:
+            return ''
+        return value.value
+
+    def _deserialize(self, value, attr, data):
+        value = int(value)
+        return TaskState(value)
+
+
+class TasksSchema(ma.Schema):
+    id = ma.fields.Integer(allow_none=True)
+    scheduler = ma.fields.Url(allow_none=True)
+    state = TaskStateField(attribute="state")
+    create = ma.fields.DateTime(allow_none=True)
+    submit = ma.fields.DateTime(allow_none=True)
+    finish = ma.fields.DateTime(allow_none=True)
+    depends = ma.fields.List(ma.fields.Integer())
+
+
+TaskSchema = TasksSchema()
+
+
+class TaskSlurmSchema(ma.Schema):
+    id = ma.fields.Integer(allow_none=True)
+    task_id = ma.fields.Integer(allow_none=True)
+    worker = ma.fields.String(allow_none=True)
+    workdir = ma.fields.String(allow_none=True)
+    script = ma.fields.String(allow_none=True)
+
+
+taskSlurmSchema = TaskSlurmSchema()
+
+
+class TaskSimuSchema(ma.Schema):
+    id = ma.fields.Integer(allow_none=True)
+    taskSlurm_id = ma.fields.Integer(allow_none=True)
+
+
+taskSimuSchema = TaskSimuSchema()
 
 
 def create_all(database: DataBase):

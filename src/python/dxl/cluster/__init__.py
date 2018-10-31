@@ -5,6 +5,7 @@ from .backend.slurm import TaskSlurm
 
 def submit_task(task):
     return Request().create(task)
+    # return Request.create(Request(), task)
 
 def read_task(tid):
     return Request().read(tid)

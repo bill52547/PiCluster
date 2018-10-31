@@ -11,7 +11,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from ..submanager.base import is_completed, is_failed
 from ..backend.resource import allocate_node
 
-from dxl.cluster.database2.api.tasks import schema
+from dxl.cluster.database2.api.tasks import TaskSchema
 from dxl.cluster.database2.model import Task, TaskState
 from dxl.cluster.backend.test_sleep import TaskSleepBackend
 
@@ -52,7 +52,7 @@ def taskReset():
     def query(observer):
         result = requests.request("GET", _GET_API).json()
         for r in result:
-            t = Task(**schema.load(r))
+            t = Task(**TaskSchema.load(r))
             observer.on_next(t)
         observer.on_completed()
 
@@ -83,7 +83,7 @@ def create2pending():
     def query(observer):
         result = requests.request("GET", _GET_API + "?state=1").json()
         for r in result:
-            t = Task(**schema.load(r))
+            t = Task(**TaskSchema.load(r))
             observer.on_next(t)
         observer.on_completed()
 
@@ -117,7 +117,7 @@ def runtask():
     def query(observer):
         result = requests.request("GET", _GET_API+"?state=2").json()
         for r in result:
-            t = Task(**schema.load(r))
+            t = Task(**TaskSchema.load(r))
             print(f"Task {t.id} to be submitted.")
             if t.state == TaskState.Pending:
                 observer.on_next(t)
@@ -151,7 +151,7 @@ def update_task_state():
     def query(observer):
         tasks = requests.request("GET", _GET_API).json()
         for task in tasks:
-            t = Task(**schema.load(r))
+            t = Task(**TaskSchema.load(r))
             print(f"Updating state of task {t.id}.")
             if t.state == TaskState.Running or t.state == TaskState.Pending:
                 observer.on_next(t)

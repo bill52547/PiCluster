@@ -4,7 +4,7 @@ import requests
 import rx
 
 from .exceptions import TaskDatabaseConnectionError, TaskNotFoundError
-from ..config import config as c
+from ..config import config
 from .base import Task
 from ..database2.model import TaskState
 
@@ -53,57 +53,65 @@ def connection_error_handle(func):
     return wrapper
 
 
-def url(tid=None):
+def url(id=None):
     """
     Url builder, works with helper functions api_root, api_path and req_url.
 
-    :param tid: Id of a task to be used to build a request url.
+    :param id: Id of a task to be used to build a request url.
     :return: Request url.
     """
-    if tid is None:
-        return req_url(c['names'], 'localhost', c['port'], None, c['version'], c['base'])
+
+    if id is None:
+        return req_url(config['name'], 'localhost', config['port'], None, config['version'], config['base'])
     else:
-        return req_url(c['name'], 'localhost', c['port'], tid, c['version'], c['base'])
+        return req_url(config['name'], 'localhost', config['port'], id, config['version'], config['base'])
 
 
 def parse_json(s: 'json string'):
     return Task.from_json(s)
 
     
-class Request(Task):                 
+class Request:
+
+    @classmethod
     @connection_error_handle
-    def create(self, task):
+    def create(cls, task):
         task_json = task.to_json()
-        r = requests.post(url(), {'task': task_json}).json()
+        # r = requests.post(url(), {'task': task_json}).json()
+        r = requests.post(url(), task_json, headers={'Content-Type': "application/json"}).json()
         task.id = r['id']
         return task
 
+    @classmethod
     @connection_error_handle
-    def read(self, tid):
-        r = requests.get(url(tid))
+    def read(cls, id):
+        r = requests.get(url(id))
         if r.status_code == 200:
             return parse_json(r.text)  
         else:
-            raise TaskNotFoundError(tid)
+            raise TaskNotFoundError(id)
 
+    @classmethod
     @connection_error_handle
-    def read_all(self):
+    def read_all(cls):
         tasks = requests.get(url()).text
         task = json.loads(tasks)
-        return (rx.Observable.from_(task).map(parse_json))
+        return rx.Observable.from_(task).map(parse_json)
 
+    @classmethod
     @connection_error_handle
-    def update(self, task):
+    def update(cls, task):
         task_json = task.to_json()
         r = requests.put(url(), {'task': task_json})
         if r.status_code == 404:
             raise TaskNotFoundError(task_json['id'])
 
+    @classmethod
     @connection_error_handle
-    def delete(self, tid):
-        r = requests.delete(url(tid))
+    def delete(cls, id):
+        r = requests.delete(url(id))
         if r.status_code == 404:
-            raise TaskNotFoundError(tid)
+            raise TaskNotFoundError(id)
 
 
 def submit(task): 
