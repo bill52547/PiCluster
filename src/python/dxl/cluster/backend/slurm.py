@@ -144,7 +144,7 @@ class TaskSlurm(Task):
     def __init__(self,
                  task_id=None,
                  state=None,
-                 depends=None,
+                 depends=[],
                  create=None,
                  submit=None,
                  finish=None,
@@ -167,9 +167,10 @@ class TaskSlurm(Task):
         self.workdir = details["workdir"]
         self.script = details["script"]
 
-    @property
-    def id(self):
-        return self.id
+    # @property
+    # def id(self):
+    #     #TODO id is not currect
+    #     return self.task_id
 
 
 def sid_from_submit(s: str):
@@ -253,6 +254,9 @@ def get_slurm_info(id: int) -> TaskSlurmInfo:
 
 
 class Slurm(Cluster):
+    """
+    Handle a slurm task life cycle.
+    """
     @classmethod
     def submit(cls, t: TaskSlurm):
         id = sbatch(t.workdir, t.script)
@@ -261,8 +265,8 @@ class Slurm(Cluster):
                             nb_nodes=slurm_info.nb_nodes,
                             node_list=slurm_info.node_list)
 
-        new_task = t.update_info.to_dict()
-        nt = new_task.update_state(TaskState.Running)
+        new_task = t.update_info(new_info.to_dict())
+        nt = new_task.update_state(TaskState.Runing)
 
         web.Request().update(nt)
         return nt
@@ -278,7 +282,4 @@ class Slurm(Cluster):
 
     @classmethod
     def cancel(cls, t: TaskSlurm):
-        """
-        取消任务
-        """
         scancel(t.id)

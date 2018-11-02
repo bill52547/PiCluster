@@ -4,6 +4,7 @@ from .interactive.base import Task, TaskInfo, Worker, State, Type
 from .backend.slurm import TaskSlurm 
 
 def submit_task(task):
+    # print(task.to_json())
     return Request().create(task)
     # return Request.create(Request(), task)
 

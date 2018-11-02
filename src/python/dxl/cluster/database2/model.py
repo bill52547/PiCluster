@@ -110,7 +110,7 @@ class TasksSchema(ma.Schema):
     depends = ma.fields.List(ma.fields.Integer())
 
 
-TaskSchema = TasksSchema()
+taskSchema = TasksSchema()
 
 
 class TaskSlurmSchema(ma.Schema):
@@ -119,6 +119,7 @@ class TaskSlurmSchema(ma.Schema):
     worker = ma.fields.String(allow_none=True)
     workdir = ma.fields.String(allow_none=True)
     script = ma.fields.String(allow_none=True)
+    # script = ma.fields.List(ma.fields.String())
 
 
 taskSlurmSchema = TaskSlurmSchema()

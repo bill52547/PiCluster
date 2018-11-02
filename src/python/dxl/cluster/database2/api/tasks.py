@@ -4,7 +4,7 @@ from flask import Flask, Response, make_response, request, url_for
 from flask_restful import Api, Resource, reqparse
 from dxl.cluster.database2 import TaskTransactions
 from dxl.cluster.database2 import TaskState, Task
-from dxl.cluster.database2.model import TaskSlurm, TaskSimu, TaskSchema, taskSlurmSchema, taskSimuSchema
+from dxl.cluster.database2.model import TaskSlurm, TaskSimu, taskSchema, taskSlurmSchema, taskSimuSchema
 import marshmallow as ma
 import attr
 
@@ -87,14 +87,14 @@ class TasksResource(Resource):
         if args['state'] == None:
             try:
                 result = TasksBind.tasks.read_all()
-                return TaskSchema.dump(result, many=True), 200
+                return taskSchema.dump(result, many=True), 200
             except Exception as e:
                 return {"error": str(e)}, 404
 
         elif int(args['state']) in [s.value for s in TaskState]:
             try:
                 result = TasksBind.tasks.filter(TaskState(int(args['state'])))
-                return TaskSchema.dump(result, many=True), 200
+                return taskSchema.dump(result, many=True), 200
             except Exception as e:
                 return {"error": str(e)}, 404
 
@@ -116,9 +116,13 @@ class TasksResource(Resource):
             is_user_task = False
             taskSlurmBody = {}
 
-        task = Task(**TaskSchema.load(taskBody))
+        # print("************taskBody************")
+        # print(taskBody)
+        task = Task(**taskSchema.load(taskBody))
         result_task = TasksBind.tasks.create(task)
 
+        # print("************taskSlurmBody************")
+        # print(taskSlurmBody)
         taskSlurm = TaskSlurm(**taskSlurmSchema.load(taskSlurmBody))
         result_taskSlurm = TasksBind.tasks.create_taskSlurm(taskSlurm, result_task.id)
 
@@ -133,7 +137,7 @@ class TaskResource(Resource):
 
     def get(self, id:int):
         try:
-            return TaskSchema.dump(TasksBind.tasks.read(id)), 200
+            return taskSchema.dump(TasksBind.tasks.read(id)), 200
         except Exception as e:
             return {"error": str(e)}, 404
 
@@ -144,9 +148,9 @@ class TaskResource(Resource):
                 body = request.form
             if body is None:
                 raise TypeError("No body data found.")
-            task_patch = TaskSchema.load(body)
+            task_patch = taskSchema.load(body)
             TasksBind.tasks.update(id, {k: v for k, v in task_patch.items() if v is not None})
-            return TaskSchema.dump(TasksBind.tasks.read(id)), 200
+            return taskSchema.dump(TasksBind.tasks.read(id)), 200
         except Exception as e:
             return {"error": str(e)}, 404
 

@@ -18,13 +18,27 @@ Task fields:
 import json
 from enum import Enum
 # from dxpy.file_system.path import Path
-from jfs.path import Path
-from dxl.cluster.time.timestamps import TaskStamp
+# from jfs.path import Path
+# from dxl.cluster.time.timestamps import TaskStamp
 from dxl.cluster.time.utils import strf, strp, now
-from ..database.base import check_json
+# from ..database.base import check_json
 from typing import Dict, Iterable
-from ..database2.model import TaskState
+from ..database2.model import TaskState, TaskStateField
+import marshmallow as ma
 
+
+class Schema(ma.Schema):
+    id = ma.fields.Integer(allow_none=True)
+    scheduler = ma.fields.String(allow_none=True)
+    state = TaskStateField(attribute="state")
+    create = ma.fields.DateTime(allow_none=True)
+    submit = ma.fields.DateTime(allow_none=True)
+    finish = ma.fields.DateTime(allow_none=True)
+    depends = ma.fields.List(ma.fields.Integer())
+    # details = ma.fields.Dict(allow_none=True)
+
+
+schema = Schema()
 
 
 class State(Enum):
@@ -100,6 +114,7 @@ class TaskInfo:
                         args=args)
 
 
+
 class Task:
     # json_tag = '__task__'
 
@@ -110,6 +125,7 @@ class Task:
                  create=None,
                  submit=None,
                  finish=None,
+                 scheduler=None,
                  details={}):
 
         self.id = id
@@ -124,7 +140,9 @@ class Task:
         self.submit = submit
         self.finish = finish
 
+        self.scheduler=scheduler
         self.details = details
+        self.details["is_user_task"] = details.get("is_user_task", False)
 
     @property
     def is_created(self):
@@ -146,6 +164,18 @@ class Task:
     def is_fail(self):
         return self.state == TaskState.Failed
 
+    @property
+    def is_user_task(self):
+        return self.details["is_user_task"] is True
+
+    def serialization(self):
+        return schema.dump(self)
+
+    @classmethod
+    def deserialization(cls, s: 'json string'):
+        return schema.load(s)
+
+        # pass
     # @property
     # def is_depen_gpu(self):
     #     if self.info != {}:
@@ -156,7 +186,15 @@ class Task:
             pass
 
     def to_json(self):
-        return json.dumps(self.serialization(self))
+        return json.dumps(self.serialization())
+
+    @classmethod
+    def from_json(cls, s):
+        return json.loads(s)
+
+    @classmethod
+    def from_dict(cls, d):
+        return
 
     def replace_depends(self, sid1, sid2):
         sids = self.depends
@@ -194,39 +232,42 @@ class Task:
                     finish=self.finish,
                     details=self.details)
 
-    @classmethod
-    def from_json(cls, s):
-        # check_json(s)
-        return json.loads(s, object_hook=cls.deserialization)
+    # @classmethod
+    # def from_json(cls, s):
+    #     # check_json(s)
+    #     return json.loads(s, object_hook=cls.deserialization)
+    #
+    # @classmethod
+    # def serialization(cls, obj):
+    #     if isinstance(obj, Task):
+    #         return {'id': obj.id,
+    #                 'state': obj.state.value,
+    #                 'depends': obj.depends,
+    #                 "create": obj.create,
+    #                 "submit": obj.submit,
+    #                 "finish": obj.finish,
+    #                 "details": obj.details}
+    #     raise TypeError(repr(obj) + " is not JSON serializable")
+    #
+    # @classmethod
+    # def deserialization(cls, dct):
+    #     # if cls.json_tag in dct:
+    #     return Task(id=dct['id'],
+    #                 state=TaskState(dct['state']),
+    #                 depends=dct['depends'],
+    #                 create=dct['create'],
+    #                 submit=dct['submit'],
+    #                 finish=dct['finish'])
+    #                 # details=
+    #                 # )
+    #     # return dct
+    #
+    def __repr__(self):
+        return f"Task {self.to_json()}"
 
-    @classmethod
-    def serialization(cls, obj):
-        if isinstance(obj, Task):
-            return {'id': obj.id,
-                    'state': obj.state.value,
-                    'depends': obj.depends,
-                    "create": obj.create,
-                    "submit": obj.submit,
-                    "finish": obj.finish,
-                    "details": obj.details}
-        raise TypeError(repr(obj) + " is not JSON serializable")
-
-    @classmethod
-    def deserialization(cls, dct):
-        # if cls.json_tag in dct:
-        return Task(id=dct['id'],
-                    state=TaskState(dct['state']),
-                    depends=dct['depends'],
-                    create=dct['create'],
-                    submit=dct['submit'],
-                    finish=dct['finish'])
-                    # details=
-                    # )
-        # return dct
-
-    def __str__(self):
-        dct = self.serialization(self)
-        return json.dumps(dct, separators=(',', ':'), indent=4)
+    # def __str__(self):
+    #     dct = self.serialization(self)
+    #     return json.dumps(dct, separators=(',', ':'), indent=4)
 
     def __hash__(self):
         return id(self)

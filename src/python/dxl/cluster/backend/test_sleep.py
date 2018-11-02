@@ -9,6 +9,3 @@ class TaskSleepBackend:
             observer.on_next(task_id)
             observer.on_completed()
         return rx.Observable.create(dummpy_run).subscribe_on(scheduler)
-
-
-
