@@ -11,6 +11,7 @@ import attr
 API_VERSION = 1
 TASK_API_URL = f"/api/v{API_VERSION}/tasks"
 TASK_SLURM_API_URL = f"/api/v{API_VERSION}/taskslurm"
+JOIN_API_URL = f"/api/v{API_VERSION}/jointask"
 
 
 class TasksBind:
@@ -29,52 +30,6 @@ class TasksBind:
     @classmethod
     def clear(cls):
         cls.tasks = None
-
-
-# class TaskStateField(ma.fields.Field):
-#     """
-#     Serialization/deserialization utils
-#     """
-#     def _serialize(self, value, attr, obj):
-#         if value is None:
-#             return ''
-#         return value.value
-#
-#     def _deserialize(self, value, attr, data):
-#         value = int(value)
-#         return TaskState(value)
-#
-#
-# class TasksSchema(ma.Schema):
-#     id = ma.fields.Integer(allow_none=True)
-#     scheduler = ma.fields.Url(allow_none=True)
-#     state = TaskStateField(attribute="state")
-#     create = ma.fields.DateTime(allow_none=True)
-#     submit = ma.fields.DateTime(allow_none=True)
-#     finish = ma.fields.DateTime(allow_none=True)
-#     depends = ma.fields.List(ma.fields.Integer())
-#
-#
-# schema = TasksSchema()
-#
-#
-# class TaskSlurmSchema(ma.Schema):
-#     id = ma.fields.Integer(allow_none=True)
-#     task_id = ma.fields.Integer(allow_none=True)
-#     worker = ma.fields.String(allow_none=True)
-#     workdir = ma.fields.String(allow_none=True)
-#     script = ma.fields.String(allow_none=True)
-#
-#
-# taskSlurmSchema = TaskSlurmSchema()
-#
-#
-# class TaskSimuSchema(ma.Schema):
-#     id = ma.fields.Integer(allow_none=True)
-#     taskSlurm_id = ma.fields.Integer(allow_none=True)
-#
-#
-# taskSimuSchema = TaskSimuSchema()
 
 
 class TasksResource(Resource):
@@ -188,6 +143,14 @@ class TaskSlurmResource(Resource):
             return {"error": str(e)}, 404
 
 
+class JoinResource(Resource):
+    def get(self, id):
+        try:
+            return taskSlurmSchema.dump(TasksBind.tasks.read_taskSlurm_by_taskid(id)), 200
+        except Exception as e:
+            return {"error": str(e)}, 404
+
+
 def add_resource(api, tasks):
     TasksBind.set(tasks)
     api.add_resource(TasksResource, TASK_API_URL) # /api/v1/tasks
@@ -195,3 +158,4 @@ def add_resource(api, tasks):
     api.add_resource(TaskAll, TASK_API_URL + "/count")
 
     api.add_resource(TaskSlurmResource, TASK_SLURM_API_URL + "/<int:id>")
+    api.add_resource(JoinResource, JOIN_API_URL + "/<int:id>")

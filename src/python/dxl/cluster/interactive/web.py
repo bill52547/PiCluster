@@ -8,10 +8,13 @@ from ..config import config
 from .base import Task
 from ..database2.model import TaskState
 from typing import List
-from ..database2.model import taskSchema
+from ..database2.model import taskSchema, taskSlurmSchema, TaskSlurm
 import json
 
 import datetime
+
+#TODO move to config file
+REQUEST_IP = "localhost"
 
 
 def now(local=False):
@@ -65,22 +68,36 @@ def url(id=None):
     """
 
     if id is None:
-        return req_url(config['name'], 'localhost', config['port'], None, config['version'], config['base'])
+        return req_url(config['name'], REQUEST_IP, config['port'], None, config['version'], config['base'])
     else:
-        return req_url(config['name'], 'localhost', config['port'], id, config['version'], config['base'])
+        return req_url(config['name'], REQUEST_IP, config['port'], id, config['version'], config['base'])
 
 def url_taskSlurm(id=None):
     if id is None:
-        return req_url(ip="localhost",
+        return req_url(ip=REQUEST_IP,
                        port=config['port'],
                        version=config['version'],
                        name="taskslurm",
                        suffix=None)
     else:
-        return req_url(ip="localhost",
+        return req_url(ip=REQUEST_IP,
                        port=config['port'],
                        version=config['version'],
                        name="taskslurm",
+                       suffix=id)
+
+def url_jointask(id=None):
+    if id is None:
+        return req_url(ip=REQUEST_IP,
+                       port=config['port'],
+                       version=config['version'],
+                       name="jointask",
+                       suffix=None)
+    else:
+        return req_url(ip=REQUEST_IP,
+                       port=config['port'],
+                       version=config['version'],
+                       name="jointask",
                        suffix=id)
 
 def parse_json(s: 'json string'):
@@ -103,9 +120,9 @@ class Request:
     @classmethod
     @connection_error_handle
     def read(cls, id: int):
-        r = requests.get(url(id))
-        if r.status_code == 200:
-            return parse_json(r.text)  
+        task_json = requests.get(url(id))
+        if task_json.status_code == 200:
+            return Task(**taskSchema.load(json.loads(task_json.text)))
         else:
             raise TaskNotFoundError(id)
 
@@ -133,6 +150,8 @@ class Request:
     @classmethod
     @connection_error_handle
     def patch(cls, task_id: int, patch: dict):
+        print(url(task_id))
+        print(patch)
         r = requests.patch(url(task_id), json=patch)
         if r.status_code == 404:
             raise TaskNotFoundError(task_id)
@@ -152,9 +171,17 @@ class Request:
 
         state_buf = []
         for i in depends_tasks:
-            state_buf.append(i['state'])
+            state_buf.append(i.state)
 
         return all(np.ones(len(state_buf))*TaskState.Completed.value == state_buf)
+
+    @classmethod
+    @connection_error_handle
+    def joint_query(cls, task: Task):
+        def query(observer):
+            observer.on_next(json.loads(requests.get(url_jointask(task.id)).text))
+            observer.on_completed()
+        return rx.Observable.create(query).map(lambda t: TaskSlurm(**taskSlurmSchema.load(t)))
 
     @classmethod
     @connection_error_handle

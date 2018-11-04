@@ -17,19 +17,19 @@ from .base import Cluster
 
 
 def scontrol_url(id):
-    return f'http://www.tek-pi.com:1888/api/v1/slurm/scontrol?job_id={id}'
+    return f'http://202.120.1.61:1888/api/v1/slurm/scontrol?job_id={id}'
 
 
 def scancel_url(id):
-    return f'http://www.tek-pi.com:1888/api/v1/slurm/scancel?job_id={id}'
+    return f'http://202.120.1.61:1888/api/v1/slurm/scancel?job_id={id}'
 
 
 def squeue_url():
-    return 'http://www.tek-pi.com:1888/api/v1/slurm/squeue'
+    return 'http://202.120.1.61:1888/api/v1/slurm/squeue'
 
 
 def sbatch_url(args, filename, workdir):
-    return f'http://www.tek-pi.com:1888/api/v1/slurm/sbatch?arg={args}&file={filename}&work_dir={workdir}'
+    return f'http://202.120.1.61:1888/api/v1/slurm/sbatch?arg={args}&file={filename}&work_dir={workdir}'
 
 
 class SlurmState(Enum):
@@ -188,7 +188,7 @@ def squeue() -> 'Observable[TaskSlurmInfo]':
             .filter(lambda l: l is not None))
 
 
-def sbatch(workdir: Directory, filename, args="run.sh"):
+def sbatch(workdir: Directory, filename):
     """
     Submitting new task.
     :param workdir:
@@ -196,6 +196,8 @@ def sbatch(workdir: Directory, filename, args="run.sh"):
     :param args: Script file name "run.sh" by default.
     :return:
     """
+    # TODO args and filename are set the same. because all developers forget why they were set, too bad, so sad :(
+    args=filename
     url_ = sbatch_url(args, filename, workdir)
     result = requests.post(sbatch_url(args, filename, workdir)).json()
     with open('/tmp/output.txt', 'a') as fout:

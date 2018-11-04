@@ -16,6 +16,8 @@ from dxl.cluster.database2.model import Task, TaskState
 from dxl.cluster.backend.slurm import sbatch
 from ..interactive.web import Request
 from typing import List
+import arrow
+# import marshmallow as ma
 
 scheduler = rx.concurrency.ThreadPoolScheduler()
 # _GET_API = "http://0.0.0.0:23300/api/v1/tasks"
@@ -34,8 +36,8 @@ class CycleService:
         # TODO check depends & submit phase
         # print("*****************taskReset*****************")
         # task_reset()
-
-
+        #
+        #
         print("*****************Create2Pending*****************")
         create2pending()
         print("********************runtask********************")
@@ -117,31 +119,47 @@ def create2pending():
      .subscribe(_Observer()))
 
 
+# class datetimeSchema(ma.Schema):
+#     datetime = ma.fields.DateTime(allow_none=True)
+#
+#
+# datetime_schema = datetimeSchema()
+
+
 def run_task():
     """
     Get and launch tasks at pending state.
     """
-    # def query(observer):
-    #     result = requests.request("GET", _GET_API+"?state=2").json()
-    #     for r in result:
-    #         t = Task(**taskSchema.load(r))
-    #         print(f"Task {t.id} to be submitted.")
-    #         if t.state == TaskState.Pending:
-    #             observer.on_next(t)
-    #     observer.on_completed()
+    def to_submitted(taskSlurm):
 
-    def to_submitted(task_id):
-        print(f"Submitting task: {task_id}")
-        Request.patch(task_id, {"state": TaskState.Submitted.value})
-
-        # requests.request("PATCH",
-        #                  _GET_API+f"/{task_id}",
-        #                  data={'state': TaskState.Submitted.value})
-        # return task_id
+        # 这里需要 保留 Task.id 用于追踪任务
+        # 同时需要 script 和 workdir 用于 sbatch 提交任务
+        # 可以直接用 read_taskSlurm_by_taskid(task.id) 读回 script 和 workdir，
+        # 但是就需要在处理task的流中 加入 请求，就会造成blocking
+        # 用flatmap是否能解决？
+        # print(f"sbatch({task})")
+        # task_details = Request.joint_query(task.id)
+        try:
+            print(f"Submitting task: {taskSlurm.task_id}")
+            # TODO add submit time patch
+            Request.patch(taskSlurm.task_id, {"state": TaskState.Submitted.value})
+                                              # "submit": datetime_schema.dump({"datetime":arrow.utcnow().datetime})})
+            # print(f"sbatch({taskSlurm})")
+            # sbatch(workdir=taskSlurm.workdir, filename=taskSlurm.script)
+        except Exception as e:
+            print(e)
+        #.details['workdir']},{task.details['script']})")
+        # sbatch(workdir=task.details["workdir"],
+        #        filename=task.details["script"])
+    def to_slurm(taskSlurm):
+        if taskSlurm.workdir is not None or taskSlurm.script is not None:
+            print(f"sbatch({taskSlurm})")
+            sbatch(workdir=taskSlurm.workdir, filename=taskSlurm.script)
+        return taskSlurm
 
     class _Observer(Observer):
-        def on_next(self, task):
-            to_submitted(task.id)
+        def on_next(self, taskSlurm):
+            to_submitted(taskSlurm)
 
         def on_error(self, e):
             print("Got error: %s" % e)
@@ -150,15 +168,15 @@ def run_task():
             print("runtask Sequence completed")
             print()
 
-    # (rx.Observable.create(query)
-    #  .subscribe_on(scheduler)
-    #  .flat_map(lambda t: TaskSleepBackend.submit(t.id))
-    #  .map(to_submitted)
-    #  .subscribe(_Observer()))
     (Request.read_state(TaskState.Pending.value)
-     .subscribe_on(scheduler)
+     .flat_map(lambda task: Request.joint_query(task))
+     .map(lambda taskSlurm: to_slurm(taskSlurm))
      .subscribe(_Observer()))
 
+
+def task_tracking():
+
+    pass
 
 # 用slurm 查询任素状态，返回更新数据库
 # def update_task_state():

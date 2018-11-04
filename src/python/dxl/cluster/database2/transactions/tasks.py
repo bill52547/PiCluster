@@ -12,6 +12,11 @@ class TaskTransactions:
         self.db = db
 
     def create(self, t: Task):
+        """
+        Create Task
+        :param t:
+        :return:
+        """
         with self.db.session() as sess:
             sess.add(t)
             t.state = TaskState.Created
@@ -20,10 +25,21 @@ class TaskTransactions:
             return self.read(t.id)
 
     def read(self, task_id: int):
+        """
+        Read Task by Task.id
+        :param task_id:
+        :return:
+        """
         with self.db.session() as sess:
             return sess.query(Task).get(task_id)
 
     def create_taskSlurm(self, t: TaskSlurm, task_id: int):
+        """
+        Create TaskSlurm
+        :param t:
+        :param task_id:
+        :return:
+        """
         with self.db.session() as sess:
             sess.add(t)
             t.task_id = task_id
@@ -31,8 +47,17 @@ class TaskTransactions:
             return self.read_taskSlurm(t.id)
 
     def read_taskSlurm(self, task_id: int):
+        """
+        Read taskSlurm by TaskSlurm.id
+        :param task_id:
+        :return:
+        """
         with self.db.session() as sess:
             return sess.query(TaskSlurm).get(task_id)
+
+    def read_taskSlurm_by_taskid(self, task_id: int):
+        with self.db.session() as sess:
+            return sess.query(TaskSlurm).join(Task).filter(Task.id == task_id).first()
 
     def create_taskSimu(self, t: TaskSimu, taskSlurm_id: int):
         with self.db.session() as sess:
