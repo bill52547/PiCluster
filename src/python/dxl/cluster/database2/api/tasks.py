@@ -104,6 +104,8 @@ class TaskResource(Resource):
             if body is None:
                 raise TypeError("No body data found.")
             task_patch = taskSchema.load(body)
+            print(body)
+            print(task_patch)
             TasksBind.tasks.update(id, {k: v for k, v in task_patch.items() if v is not None})
             return taskSchema.dump(TasksBind.tasks.read(id)), 200
         except Exception as e:
@@ -150,7 +152,7 @@ class TaskSlurmResource(Resource):
             if body is None:
                 raise TypeError("No body data found.")
             task_slurm_patch = taskSlurmSchema.load(body)
-            print({k: v for k, v in task_slurm_patch.items() if v is not None})
+            # print({k: v for k, v in task_slurm_patch.items() if v is not None})
             TasksBind.tasks.task_slurm_update(id, {k: v for k, v in task_slurm_patch.items() if v is not None})
             return taskSlurmSchema.dump(TasksBind.tasks.read_taskSlurm(id)), 200
         except Exception as e:

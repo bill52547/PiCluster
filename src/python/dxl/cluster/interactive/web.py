@@ -170,8 +170,10 @@ class Request:
     @classmethod
     @connection_error_handle
     def taskSlurm_patch(cls, id: int, patch: dict):
-        print(url_taskSlurm(id))
+        # print(url_taskSlurm(id))
+        # print(f"yoyoyo: {patch}")
         r = requests.patch(url_taskSlurm(id), json=patch)
+        # r = requests.request("PATCH", url_taskSlurm(id), data={"slurm_state": 3})
         if r.status_code == 404:
             raise TaskNotFoundError(id)
 

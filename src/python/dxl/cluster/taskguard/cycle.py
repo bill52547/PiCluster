@@ -28,15 +28,14 @@ class CycleService:
     def cycle(cls):
         # print("*****************taskReset*****************")
         # task_reset()
-        #
-        #
-        print("*****************Create2Pending*****************")
+
+        print("*****************Create2Pending****************")
         create2pending()
         print("********************runtask********************")
         run_task()
-        print("********************on_running********************")
+        print("*******************on_running******************")
         on_running()
-        print("********************on_complete********************")
+        print("******************on_complete******************")
         on_complete()
 
 
@@ -91,12 +90,23 @@ def create2pending():
         Request.patch(task.id, {"state": TaskState.Pending.value})
 
     def is_runnable(task):
+
+        def do(c):
+            print(__file__, c)
+            if c == 0:
+                # return rx.Observable.from_([(True, task)])
+                return (True, task)
+            else:
+                return (False, None)
+                # return rx.Observable.from_([(False, None)])
         if len(task.depends) == 0:
-            return True
-        elif Request.number_of_pending_depends(task.depends) == 0:
-            return True
+            return rx.Observable.from_([(True, task)])
         else:
-            return False
+            return Request.number_of_pending_depends(task.depends).map(do)
+            # print("True returns")
+            # return True
+        # else:
+        #     return rx.Observable.from_([(False, None)])
 
     class _Observer(Observer):
         def on_next(self, task):
@@ -109,9 +119,17 @@ def create2pending():
             print("create2pending Sequence completed")
             print()
 
+    # def debug_(x):
+    #     print(x)
+    #     return x
+
     (Request.read_state(TaskState.Created.value)
      .subscribe_on(scheduler)
-     .filter(lambda task: is_runnable(task))
+     .flat_map(is_runnable)
+     # .map(debug_)
+     # .filter(lambda task: is_runnable(task))
+     .filter(lambda x: x[0])
+     .map(lambda x: x[1])
      .subscribe(_Observer()))
 
 
@@ -158,16 +176,17 @@ def on_running():
         :param taskSlurm:
         :return:
         """
-        # todo 写成query slurm, 把scontrol部分也变成流
+        # TODO: Is it necessary to make scontrol streaming?
         taskSlurm_state = scontrol(taskSlurm.slurm_id)["job_state"]
+        print(taskSlurm_state)
 
         if taskSlurm_state == "RUNNING":
-            print("on running phase")
-            print(taskSlurm)
-            print(taskSlurm.task_id)
+            # print("on running phase")
+            # print(taskSlurm)
+            # print(taskSlurm.task_id)
             Request.taskSlurm_patch(taskSlurm.id,
-                                    {"slurm_state": TaskState.Running.value})
-            print("in between")
+                                    {"slurm_state": TaskState.Running.name})
+            # print("in between")
 
             Request.patch(taskSlurm.task_id,
                           {"state": TaskState.Running.value})
@@ -180,11 +199,11 @@ def on_running():
 def on_complete():
     def to_complete(taskSlurm):
         taskSlurm_state = scontrol(taskSlurm.slurm_id)["job_state"]
-        print(f"{taskSlurm_state}, type: {type(taskSlurm_state)}")
+        print(f"{taskSlurm.slurm_id}, or TaskSlurm {taskSlurm.id} is completing.")
         try:
             if taskSlurm_state == "COMPLETED":
                 Request.taskSlurm_patch(taskSlurm.id,
-                                        {"slurm_state": TaskState.Completed.value})
+                                        {"slurm_state": TaskState.Completed.name})
 
                 Request.patch(taskSlurm.task_id,
                               {"state": TaskState.Completed.value,
