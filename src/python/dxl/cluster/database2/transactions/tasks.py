@@ -82,6 +82,14 @@ class TaskTransactions:
             sess.commit()
             return self.read(task_id)
 
+    def task_slurm_update(self, task_slurm_id: int, changes: dict):
+        with self.db.session() as sess:
+            to_update = sess.query(TaskSlurm).get(task_slurm_id)
+            for k, v in changes.items():
+                setattr(to_update, k, v)
+            sess.commit()
+            return self.read_taskSlurm(task_slurm_id)
+
     def count_all(self):
         with self.db.session() as sess:
             return sess.query(Task).count()

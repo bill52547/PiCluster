@@ -142,6 +142,20 @@ class TaskSlurmResource(Resource):
         except Exception as e:
             return {"error": str(e)}, 404
 
+    def patch(self, id: int):
+        try:
+            body = request.json
+            if body is None:
+                body = request.form
+            if body is None:
+                raise TypeError("No body data found.")
+            task_slurm_patch = taskSlurmSchema.load(body)
+            print({k: v for k, v in task_slurm_patch.items() if v is not None})
+            TasksBind.tasks.task_slurm_update(id, {k: v for k, v in task_slurm_patch.items() if v is not None})
+            return taskSlurmSchema.dump(TasksBind.tasks.read_taskSlurm(id)), 200
+        except Exception as e:
+            return {"error": str(e)}, 404
+
 
 class JoinResource(Resource):
     def get(self, id):

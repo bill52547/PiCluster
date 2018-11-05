@@ -141,6 +141,11 @@ class Request:
     @classmethod
     @connection_error_handle
     def read_from_list(cls, ids: List[int]):
+        """
+        Get a Task obj stream with given list of ids.
+        :param ids:
+        :return:
+        """
         def query(observer):
             for id in ids:
                 observer.on_next(cls.read(id))
@@ -149,35 +154,85 @@ class Request:
 
     @classmethod
     @connection_error_handle
+    def read_taskSlurm(cls, taskSlurm_id: int):
+        def query(observer):
+            observer.on_next(json.loads(requests.get(url_taskSlurm(taskSlurm_id)).text))
+            observer.on_completed()
+        return rx.Observable.create(query).map(lambda t: TaskSlurm(**taskSlurmSchema.load(t)))
+
+    @classmethod
+    @connection_error_handle
     def patch(cls, task_id: int, patch: dict):
-        print(url(task_id))
-        print(patch)
         r = requests.patch(url(task_id), json=patch)
         if r.status_code == 404:
             raise TaskNotFoundError(task_id)
 
     @classmethod
     @connection_error_handle
-    def task_slurm_depends_checking(cls, task_slurm_ids: List[int]):
-        # TODO Refactor: implementation is not elegant
-        import numpy as np
-
-        task_ids = []
-        for task_slurm_id in task_slurm_ids:
-            task_slurm = requests.get(url_taskSlurm(task_slurm_id)).text
-            task_ids.append(json.loads(task_slurm)['task_id'])
-
-        depends_tasks = cls.read_from_list(task_ids).to_list().to_blocking().first()
-
-        state_buf = []
-        for i in depends_tasks:
-            state_buf.append(i.state)
-
-        return all(np.ones(len(state_buf))*TaskState.Completed.value == state_buf)
+    def taskSlurm_patch(cls, id: int, patch: dict):
+        print(url_taskSlurm(id))
+        r = requests.patch(url_taskSlurm(id), json=patch)
+        if r.status_code == 404:
+            raise TaskNotFoundError(id)
 
     @classmethod
     @connection_error_handle
-    def joint_query(cls, task: Task):
+    def number_of_pending_depends(cls, task_slurm_ids: List[int]):
+        """
+        List of TaskSlurm id ->
+        List of corresponding Task objects ->
+        Sum up Task.state != TaskState.Completed.value
+
+        The 0 result of this the streaming indicates that all depends completed. And the task is submittable.
+        :param task_slurm_ids:
+        :return:
+        """
+        buf = list()
+        for task_slurm_id in task_slurm_ids:
+            buf.append(cls.read_taskSlurm(task_slurm_id))
+
+        return (rx.Observable.from_(buf).merge_all()
+                .map(lambda t: t.task_id)
+                .map(lambda task_id: Request.read(task_id).state.value)
+                .map(lambda i: i != TaskState.Completed.value).sum())
+
+        # # TODO Refactor: implementation is not elegant
+        # import numpy as np
+        #
+        # task_ids = []
+        # for task_slurm_id in task_slurm_ids:
+        #     task_slurm = requests.get(url_taskSlurm(task_slurm_id)).text
+        #     task_ids.append(json.loads(task_slurm)['task_id'])
+        #
+        # depends_tasks = cls.read_from_list(task_ids).to_list().to_blocking().first()
+        #
+        # state_buf = []
+        # for i in depends_tasks:
+        #     state_buf.append(i.state)
+        #
+        # return all(np.ones(len(state_buf))*TaskState.Completed.value == state_buf)
+
+    @classmethod
+    @connection_error_handle
+    def reverse_cross_query(cls, taskSlurm: TaskSlurm):
+        """
+        Query Task obj using TaskSlurm obj.
+        :param taskSlurm:
+        :return:
+        """
+        def query(observer):
+            observer.on_next(json.loads(requests.get(url(taskSlurm.task_id)).text))
+        return rx.Observable.create(query).map(lambda t: Task(**taskSchema.load(t)))
+
+
+    @classmethod
+    @connection_error_handle
+    def cross_query(cls, task: Task):
+        """
+        Query TaskSlurm by Task.
+        :param task:
+        :return:
+        """
         def query(observer):
             observer.on_next(json.loads(requests.get(url_jointask(task.id)).text))
             observer.on_completed()
@@ -190,25 +245,25 @@ class Request:
         if r.status_code == 404:
             raise TaskNotFoundError(id)
 
-
-def submit(task): 
-    task = Task.from_json(task.to_json())
-    task.state = TaskState.Pending
-    Request().update(task)
-    return task
-
-
-def start(task):
-    task = Task.from_json(task.to_json())
-    task.start = now()
-    task.state = TaskState.Runing
-    Request().update(task)
-    return task
-
-
-def complete(task):
-    task = Task.from_json(task.to_json())
-    task.end = now()
-    task.state = TaskState.Complete
-    Request().update(task)
-    return task
+# def submit(task):
+#     task = Task.from_json(task.to_json())
+#     task.state = TaskState.Pending
+#     Request().update(task)
+#     return task
+#
+#
+# def start(task):
+#     task = Task.from_json(task.to_json())
+#     task.start = now()
+#     task.state = TaskState.Runing
+#     Request().update(task)
+#     return task
+#
+#
+# def complete(task):
+#     task = Task.from_json(task.to_json())
+#     task.end = now()
+#     task.state = TaskState.Complete
+#     Request().update(task)
+#     return task
+#

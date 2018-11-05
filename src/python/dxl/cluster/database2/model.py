@@ -42,6 +42,8 @@ taskSlurm = Table(
     'taskSlurm', meta,
     Column('id', Integer, primary_key=True),
     Column('task_id', Integer, ForeignKey("tasks.id")),
+    Column('slurm_id', Integer),
+    Column('slurm_state', String),
     Column('worker', String),
     Column('workdir', String),
     Column('script', String)
@@ -70,6 +72,8 @@ class Task:
 class TaskSlurm:
     id: typing.Optional[int] = None
     task_id: typing.Optional[int] = None
+    slurm_id: typing.Optional[int] = None
+    slurm_state: typing.Optional[str] = None
     worker: typing.Optional[str] = None
     workdir: typing.Optional[str] = None
     script: typing.Optional[str] = None
@@ -116,6 +120,8 @@ taskSchema = TasksSchema()
 class TaskSlurmSchema(ma.Schema):
     id = ma.fields.Integer(allow_none=True)
     task_id = ma.fields.Integer(allow_none=True)
+    slurm_id = ma.fields.Integer(allow_none=True)
+    slurm_state = ma.fields.String(allow_none=True)
     worker = ma.fields.String(allow_none=True)
     workdir = ma.fields.String(allow_none=True)
     script = ma.fields.String(allow_none=True)
