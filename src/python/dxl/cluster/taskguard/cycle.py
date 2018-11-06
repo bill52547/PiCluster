@@ -86,8 +86,9 @@ def create2pending():
         :param task: A task obj with TaskState specified in query method.
         :return: Task info in json.
         """
-        print(f"Task {task.id} is ready to go pending.")
-        Request.patch(task.id, {"state": TaskState.Pending.value})
+        if task is not None:
+            print(f"Task {task.id} is ready to go pending.")
+            Request.patch(task.id, {"state": TaskState.Pending.value})
 
     def is_runnable(task):
 
@@ -99,6 +100,7 @@ def create2pending():
             else:
                 return (False, None)
                 # return rx.Observable.from_([(False, None)])
+
         if len(task.depends) == 0:
             return rx.Observable.from_([(True, task)])
         else:
@@ -177,40 +179,70 @@ def on_running():
         :return:
         """
         # TODO: Is it necessary to make scontrol streaming?
-        taskSlurm_state = scontrol(taskSlurm.slurm_id)["job_state"]
-        print(taskSlurm_state)
+        # taskSlurm_state = scontrol(taskSlurm.slurm_id)["job_state"]
 
-        if taskSlurm_state == "RUNNING":
-            # print("on running phase")
-            # print(taskSlurm)
-            # print(taskSlurm.task_id)
+        # if taskSlurm_state == "RUNNING":
+        if taskSlurm is not None:
+            print(f"TaskSlurm: {taskSlurm.id} or {taskSlurm.task_id} is running ")
             Request.taskSlurm_patch(taskSlurm.id,
                                     {"slurm_state": TaskState.Running.name})
-            # print("in between")
 
             Request.patch(taskSlurm.task_id,
                           {"state": TaskState.Running.value})
 
+    def is_running(taskSlurm):
+
+        def do_running(state):
+            if state == "RUNNING":
+                return rx.Observable.from_([(True, taskSlurm)])
+            else:
+                return rx.Observable.from_([(False, None)])
+
+        return scontrol(taskSlurm.slurm_id).flat_map(do_running)
+
+    def debug_(x):
+        print(x)
+        return x
+
     (Request.read_state(TaskState.Submitted.value)
      .flat_map(lambda task: Request.cross_query(task))
+     # .flat_map(lambda taskSlurm: scontrol(taskSlurm.slurm_id))
+     .flat_map(lambda taskSlurm: is_running(taskSlurm))
+     .map(debug_)
+     .filter(lambda x: x[0])
+     .map(lambda x: x[1])
      .subscribe(to_running))
 
 
 def on_complete():
     def to_complete(taskSlurm):
-        taskSlurm_state = scontrol(taskSlurm.slurm_id)["job_state"]
-        print(f"{taskSlurm.slurm_id}, or TaskSlurm {taskSlurm.id} is completing.")
-        try:
-            if taskSlurm_state == "COMPLETED":
-                Request.taskSlurm_patch(taskSlurm.id,
-                                        {"slurm_state": TaskState.Completed.name})
+        # taskSlurm_state = scontrol(taskSlurm.slurm_id)["job_state"]
 
-                Request.patch(taskSlurm.task_id,
-                              {"state": TaskState.Completed.value,
-                               "finish": str(arrow.utcnow().datetime)})
-        except Exception as e:
-            print(e)
+        # try:
+        if taskSlurm is not None:
+            print(f"{taskSlurm.slurm_id}, or TaskSlurm {taskSlurm.id} is completing.")
+            Request.taskSlurm_patch(taskSlurm.id,
+                                    {"slurm_state": TaskState.Completed.name})
+
+            Request.patch(taskSlurm.task_id,
+                          {"state": TaskState.Completed.value,
+                           "finish": str(arrow.utcnow().datetime)})
+        # except Exception as e:
+        #     print(e)
+
+    def is_completed(taskSlurm):
+
+        def do_completed(state):
+            if state == "COMPLETED":
+                return rx.Observable.from_([(True, taskSlurm)])
+            else:
+                return rx.Observable.from_([(False, None)])
+
+        return scontrol(taskSlurm.slurm_id).flat_map(do_completed)
 
     (Request.read_state(TaskState.Running.value)
      .flat_map(lambda task: Request.cross_query(task))
+     .flat_map(lambda taskSlurm: is_completed(taskSlurm))
+     .filter(lambda x: x[0])
+     .map(lambda x: x[1])
      .subscribe(to_complete))

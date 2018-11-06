@@ -218,10 +218,16 @@ def scancel(id: int):
 
 
 def scontrol(id: int):
-    if id is None:
-        return False
-    result = requests.get(scontrol_url(id)).json()
-    return result
+    # TODO slurm job state is untrackable soon after job exites. need add unknow state
+    def query(observer):
+        try:
+            result = requests.get(scontrol_url(id)).json()
+            observer.on_next(result['job_state'])
+            observer.on_completed()
+        except:
+            pass
+
+    return rx.Observable.create(query)
 
 
 def get_state(id: int):
