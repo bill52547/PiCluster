@@ -100,8 +100,11 @@ class TaskStateField(ma.fields.Field):
         return value.value
 
     def _deserialize(self, value, attr, data):
-        value = int(value)
-        return TaskState(value)
+        if isinstance(value, int):
+            value = int(value)
+            return TaskState(value)
+        elif isinstance(value, str):
+            return TaskState[value]
 
 
 class TasksSchema(ma.Schema):

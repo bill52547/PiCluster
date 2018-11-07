@@ -5,17 +5,17 @@ import rx
 
 from .exceptions import TaskDatabaseConnectionError, TaskNotFoundError
 from ..config import config
-from .base import Task
-from ..database2.model import TaskState
+# from .base import Task
+from ..database2.model import TaskState, Task, TaskSlurm, TaskSimu
 from typing import List
 from ..database2.model import taskSchema, taskSlurmSchema, TaskSlurm
+from functools import singledispatch
 import json
 
 import datetime
 
 #TODO move to config file
 REQUEST_IP = "localhost"
-
 
 def now(local=False):
     if local:
@@ -100,19 +100,41 @@ def url_jointask(id=None):
                        name="jointask",
                        suffix=id)
 
+
+API_BASE = "http://192.168.1.185:3000"
+TASK_QUERY = "task?"
+TASKSLURM_QUERY = "taskSlurm?"
+
+
+# @singledispatch
+# def url(task):
+#     raise TypeError(f"Url factory for type {type(task)} not implemented..")
+#
+#
+# @url.register(Task)
+# def _(task):
+#     return API_BASE+f"/tasks?and=(id.eq.{task.id})"
+#
+#
+# @url.register(TaskSlurm)
+# def _(taskSlurm):
+#     return API_BASE + f"/taskSlurm?and=(id.eq.{taskSlurm.id})"
+
+
 def parse_json(s: 'json string'):
     return Task.from_json(s)
 
     
 class Request:
 
+    # @classmethod
+    # def to_json(cls, text):
+    #     return json.loads(text.strip("[]"))
+
     @classmethod
     @connection_error_handle
     def create(cls, task):
         task_json = task.to_json()
-        # r = requests.post(url(), {'task': task_json}).json()
-        # print("************request************")
-        # print(task_json)
         r = requests.post(url(), json=task_json).json()
         task.id = r['id']
         return task
@@ -120,11 +142,8 @@ class Request:
     @classmethod
     @connection_error_handle
     def read(cls, id: int):
-        task_json = requests.get(url(id))
-        if task_json.status_code == 200:
-            return Task(**taskSchema.load(json.loads(task_json.text)))
-        else:
-            raise TaskNotFoundError(id)
+        result = requests.get(API_BASE + f"/tasks?and=(id.eq.{id})")
+        return Task(**taskSchema.load(json.loads(result.text)[0]))
 
     @classmethod
     @connection_error_handle
@@ -132,10 +151,17 @@ class Request:
         task_json = json.loads(requests.get(url()).text)
         return rx.Observable.from_list(task_json).map(lambda t: Task(**taskSchema.load(t)))
 
+    # @classmethod
+    # @connection_error_handle
+    # def read_state(cls, state: int):
+    #     task_json = json.loads(requests.get(url()+f"?state={state}").text)
+    #     return rx.Observable.from_list(task_json).map(lambda t: Task(**taskSchema.load(t)))
+
     @classmethod
     @connection_error_handle
     def read_state(cls, state: int):
-        task_json = json.loads(requests.get(url()+f"?state={state}").text)
+        # task_json = json.loads(requests.get(url()+f"?state={state}").text)
+        task_json = json.loads(requests.get(API_BASE + f'/tasks?and=(state.eq.{TaskState(state).name})').text)
         return rx.Observable.from_list(task_json).map(lambda t: Task(**taskSchema.load(t)))
 
     @classmethod
@@ -170,10 +196,7 @@ class Request:
     @classmethod
     @connection_error_handle
     def taskSlurm_patch(cls, id: int, patch: dict):
-        # print(url_taskSlurm(id))
-        # print(f"yoyoyo: {patch}")
         r = requests.patch(url_taskSlurm(id), json=patch)
-        # r = requests.request("PATCH", url_taskSlurm(id), data={"slurm_state": 3})
         if r.status_code == 404:
             raise TaskNotFoundError(id)
 
@@ -197,22 +220,6 @@ class Request:
                 .map(lambda t: t.task_id)
                 .map(lambda task_id: Request.read(task_id).state.value)
                 .map(lambda i: i != TaskState.Completed.value).sum())
-
-        # # TODO Refactor: implementation is not elegant
-        # import numpy as np
-        #
-        # task_ids = []
-        # for task_slurm_id in task_slurm_ids:
-        #     task_slurm = requests.get(url_taskSlurm(task_slurm_id)).text
-        #     task_ids.append(json.loads(task_slurm)['task_id'])
-        #
-        # depends_tasks = cls.read_from_list(task_ids).to_list().to_blocking().first()
-        #
-        # state_buf = []
-        # for i in depends_tasks:
-        #     state_buf.append(i.state)
-        #
-        # return all(np.ones(len(state_buf))*TaskState.Completed.value == state_buf)
 
     @classmethod
     @connection_error_handle
@@ -246,26 +253,3 @@ class Request:
         r = requests.delete(url(id))
         if r.status_code == 404:
             raise TaskNotFoundError(id)
-
-# def submit(task):
-#     task = Task.from_json(task.to_json())
-#     task.state = TaskState.Pending
-#     Request().update(task)
-#     return task
-#
-#
-# def start(task):
-#     task = Task.from_json(task.to_json())
-#     task.start = now()
-#     task.state = TaskState.Runing
-#     Request().update(task)
-#     return task
-#
-#
-# def complete(task):
-#     task = Task.from_json(task.to_json())
-#     task.end = now()
-#     task.state = TaskState.Complete
-#     Request().update(task)
-#     return task
-#

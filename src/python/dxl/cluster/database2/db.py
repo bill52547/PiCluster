@@ -46,7 +46,8 @@ class DataBase:
 
     def get_or_create_maker(self):
         if self.maker is None:
-            self.maker = scoped_session(sessionmaker(self.get_or_create_engine()))
+            # self.maker = scoped_session(sessionmaker(self.get_or_create_engine()))
+            self.maker = sessionmaker(self.get_or_create_engine())
         return self.maker
 
     @contextlib.contextmanager
@@ -54,7 +55,7 @@ class DataBase:
         sess = self.get_or_create_maker()()
         try:
             yield sess
-            sess.expunge_all()
+            # sess.expunge_all()
         except Exception as e:
             sess.rollback()
             raise e
