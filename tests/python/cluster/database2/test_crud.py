@@ -1,4 +1,4 @@
-import dxl.cluster.database2  as dcd
+import dxl.cluster.database  as dcd
 import arrow
 
 def test_create():

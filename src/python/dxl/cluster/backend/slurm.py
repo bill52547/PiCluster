@@ -9,12 +9,14 @@ from jfs.directory import Directory
 import json
 
 from rx import Observable
-from ..database2.model import Worker
-from ..database2.api.tasks import TaskState
+# from ..database.model import Worker
+from ..database.api.tasks import TaskState
 from ..interactive.base import Task, TaskInfo
 from ..interactive import web
 from .base import Cluster
 
+
+# TODO remove useless parts
 
 def scontrol_url(id):
     return f'http://202.120.1.61:1888/api/v1/slurm/scontrol?job_id={id}'

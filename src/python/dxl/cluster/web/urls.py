@@ -1,5 +1,5 @@
 def api_root(version):
-    return "/api/v{version}".format(version=version)
+    return f"/api/v{version}"
 
 
 def api_path(name, suffix=None, version=None, base=None):
@@ -8,15 +8,15 @@ def api_path(name, suffix=None, version=None, base=None):
     else:
         if base.startswith('/'):
             base = base[1:]
-        base = "{root}/{base}".format(root=api_root(version), base=base)
+        base = f"{api_root(version)}/{base}"
 
     if base.endswith('/'):
         base = base[:-1]
     if suffix is None:
-        return "{base}/{name}".format(base=base, name=name)
+        return f"{base}/{name}"
     else:
-        return "{base}/{name}/{suffix}".format(base=base, name=name, suffix=suffix)
+        return f"{base}/{name}/{suffix}"
 
 
 def req_url(name, ip=None, port=None, suffix=None, version=None, base=None):
-    return 'http://{ip}:{port}{path}'.format(ip=ip, port=port, path=api_path(name, suffix, version, base))
+    return f'http://{ip}:{port}{api_path(name, suffix, version, base)}'

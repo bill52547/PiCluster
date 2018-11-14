@@ -2,9 +2,9 @@ import flask
 
 from flask import Flask, Response, make_response, request, url_for
 from flask_restful import Api, Resource, reqparse
-from dxl.cluster.database2 import TaskTransactions
-from dxl.cluster.database2 import TaskState, Task
-from dxl.cluster.database2.model import TaskSlurm, TaskSimu, taskSchema, taskSlurmSchema, taskSimuSchema
+from dxl.cluster.database import TaskTransactions
+from dxl.cluster.database import TaskState, Task
+from dxl.cluster.database.model import TaskSlurm, TaskSimu, taskSchema, taskSlurmSchema, taskSimuSchema
 import marshmallow as ma
 import attr
 
@@ -71,13 +71,9 @@ class TasksResource(Resource):
             is_user_task = False
             taskSlurmBody = {}
 
-        # print("************taskBody************")
-        # print(taskBody)
         task = Task(**taskSchema.load(taskBody))
         result_task = TasksBind.tasks.create(task)
 
-        # print("************taskSlurmBody************")
-        # print(taskSlurmBody)
         taskSlurm = TaskSlurm(**taskSlurmSchema.load(taskSlurmBody))
         result_taskSlurm = TasksBind.tasks.create_taskSlurm(taskSlurm, result_task.id)
 
@@ -152,7 +148,6 @@ class TaskSlurmResource(Resource):
             if body is None:
                 raise TypeError("No body data found.")
             task_slurm_patch = taskSlurmSchema.load(body)
-            # print({k: v for k, v in task_slurm_patch.items() if v is not None})
             TasksBind.tasks.task_slurm_update(id, {k: v for k, v in task_slurm_patch.items() if v is not None})
             return taskSlurmSchema.dump(TasksBind.tasks.read_taskSlurm(id)), 200
         except Exception as e:

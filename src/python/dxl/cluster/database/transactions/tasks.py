@@ -1,6 +1,6 @@
-from dxl.cluster.database2 import TaskState
-from dxl.cluster.database2.model import Task, TaskSlurm, TaskSimu
-from dxl.cluster.database2.db import DataBase
+from dxl.cluster.database import TaskState
+from dxl.cluster.database.model import Task, TaskSlurm, TaskSimu
+from dxl.cluster.database.db import DataBase
 from functools import singledispatch
 from sqlalchemy import func
 import arrow
@@ -101,15 +101,3 @@ class TaskTransactions:
     def count_filter(self, state):
         with self.db.session() as sess:
             return sess.query(Task).filter_by(state=state).count()
-
-
-# class TaskSlurmTransactions:
-#     def __init__(self, db: DataBase):
-#         self.db = db
-#
-#     def create(self, t: TaskSlurm):
-#         if t.task_id == None:
-#             raise ValueError(f"New simulation task should bind to a task, got task_id {t.task_id}")
-#         with self.db.session() as sess:
-#             sess.add(t)
-

@@ -23,7 +23,7 @@ from enum import Enum
 from dxl.cluster.time.utils import strf, strp, now
 # from ..database.base import check_json
 from typing import Dict, Iterable
-from ..database2.model import TaskState, TaskStateField
+from ..database.model import TaskState, TaskStateField
 import marshmallow as ma
 
 

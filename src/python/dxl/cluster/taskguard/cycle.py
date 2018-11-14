@@ -1,26 +1,13 @@
 import rx
-import requests
 from rx import Observer
-
-# from ..taskgraph.base import Graph
-from ..interactive import web, base
-from ..backend import srf, slurm
-# from ..submanager.base import resubmit_failure
-
 from apscheduler.schedulers.blocking import BlockingScheduler
-from ..submanager.base import is_completed, is_failed
-from ..backend.resource import allocate_node
-
-from dxl.cluster.database2.api.tasks import taskSchema
-from dxl.cluster.database2.model import Task, TaskState
+from dxl.cluster.database.model import Task, TaskState
 from dxl.cluster.backend.slurm import sbatch, scontrol
 from ..interactive.web import Request
-from typing import List
 import arrow
 
 
 scheduler = rx.concurrency.ThreadPoolScheduler()
-# _GET_API = "http://0.0.0.0:23300/api/v1/tasks"
 
 
 class CycleService:
@@ -57,7 +44,7 @@ def task_reset():
 
     def reset(task):
         print(f"Task {task.id} is reset.")
-        Request.patch(task.id, {"state": TaskState.Created.value})
+        Request.patch(task.id, {"state": TaskState.Created.name})
 
     class _Observer(Observer):
         def on_next(self, task):
@@ -73,11 +60,33 @@ def task_reset():
     Request.read_all().subscribe_on(scheduler).subscribe(_Observer())
 
 
+def tasks_to_track(num_limit=3):
+    """
+    Select 3 (by defualt) task simu, and track all sub
+    """
+    # task_simu = (Request.tasksimu_to_check(num_limit)
+    #              .flat_map(lambda t: Request.tasksimu_id_cast(t)))
+
+    # task_depends = (Request.tasksimu_to_check(num_limit)
+    #                 .flat_map(lambda t: Request.taskSimu_depends(t))
+    #                 .map(lambda x: x[0]))
+
+    return (Request.tasksimu_to_check(num_limit)
+            .flat_map(lambda t: Request.taskSimu_depends(t))
+            .map(lambda x: x[0]).to_list()
+            .flat_map(lambda l: Request.read_from_list(l)))
+
+
+def tasksimu_to_track():
+    return (Request.read_taskSimu()
+            .flat_map(lambda t: Request.tasksimu_id_cast(t.id))
+            .to_list()
+            .flat_map(Request.read_from_list))
+
+
 def create2pending():
     """
     Checking depends and converting task state to pending if all depends are completed.
-
-    :return: No return, but launch a stream.
     """
 
     def to_pending(task):
@@ -88,61 +97,46 @@ def create2pending():
         """
         if task is not None:
             print(f"Task {task.id} is ready to go pending.")
-            Request.patch(task.id, {"state": TaskState.Pending.value})
+            Request.patch(task.id, {"state": TaskState.Pending.name})
 
     def is_runnable(task):
-
         def do(c):
-            print(__file__, c)
             if c == 0:
-                # return rx.Observable.from_([(True, task)])
                 return (True, task)
             else:
                 return (False, None)
-                # return rx.Observable.from_([(False, None)])
 
         if len(task.depends) == 0:
             return rx.Observable.from_([(True, task)])
         else:
-            return Request.number_of_pending_depends(task.depends).map(do)
-            # print("True returns")
-            # return True
-        # else:
-        #     return rx.Observable.from_([(False, None)])
+            return Request.dependency_checking(task.id).map(do)
 
     class _Observer(Observer):
         def on_next(self, task):
             to_pending(task)
 
         def on_error(self, e):
-            print("Got error: %s" % e)
+            print("Got error in create2pending: %s" % e)
 
         def on_completed(self):
-            print("create2pending Sequence completed")
+            print("create2pending sequence completed")
             print()
 
-    # def debug_(x):
-    #     print(x)
-    #     return x
-
-    (Request.read_state(TaskState.Created.value)
+    (rx.Observable.merge(tasks_to_track(), tasksimu_to_track())
+     .filter(lambda t: t.state == TaskState.Created)
      .subscribe_on(scheduler)
-     .flat_map(is_runnable)
-     # .map(debug_)
-     # .filter(lambda task: is_runnable(task))
+     .flat_map(lambda task: is_runnable(task))
      .filter(lambda x: x[0])
      .map(lambda x: x[1])
      .subscribe(_Observer()))
 
 
 def run_task():
-    """
-    Get and launch tasks at pending state.
-    """
+
     def to_submitted(taskSlurm):
         try:
             print(f"Submitting task: {taskSlurm.task_id}")
-            Request.patch(taskSlurm.task_id, {"state": TaskState.Submitted.value,
+            Request.patch(taskSlurm.task_id, {"state": TaskState.Submitted.name,
                                               "submit": str(arrow.utcnow().datetime)})
 
         except Exception as e:
@@ -150,7 +144,7 @@ def run_task():
 
     def to_slurm(taskSlurm):
         if taskSlurm.workdir is not None and taskSlurm.script is not None:
-            Request.taskSlurm_patch(taskSlurm.id,
+            Request.patch_taskSlurm(taskSlurm.id,
                                     {"slurm_id": sbatch(workdir=taskSlurm.workdir, filename=taskSlurm.script)})
         return taskSlurm
 
@@ -159,14 +153,16 @@ def run_task():
             to_submitted(taskSlurm)
 
         def on_error(self, e):
-            print("Got error: %s" % e)
+            print("Got error in run_task: %s" % e)
 
         def on_completed(self):
             print("runtask Sequence completed")
             print()
 
-    (Request.read_state(TaskState.Pending.value)
-     .flat_map(lambda task: Request.cross_query(task))
+    (rx.Observable.merge(tasks_to_track(), tasksimu_to_track())
+     .filter(lambda t: t.state == TaskState.Pending)
+     .map(lambda t: t.id).to_list()
+     .flat_map(lambda l: Request.task_to_taskslurm(l))
      .map(lambda taskSlurm: to_slurm(taskSlurm))
      .subscribe(_Observer()))
 
@@ -178,17 +174,13 @@ def on_running():
         :param taskSlurm:
         :return:
         """
-        # TODO: Is it necessary to make scontrol streaming?
-        # taskSlurm_state = scontrol(taskSlurm.slurm_id)["job_state"]
-
-        # if taskSlurm_state == "RUNNING":
         if taskSlurm is not None:
             print(f"TaskSlurm: {taskSlurm.id} or {taskSlurm.task_id} is running ")
-            Request.taskSlurm_patch(taskSlurm.id,
+            Request.patch_taskSlurm(taskSlurm.id,
                                     {"slurm_state": TaskState.Running.name})
 
             Request.patch(taskSlurm.task_id,
-                          {"state": TaskState.Running.value})
+                          {"state": TaskState.Running.name})
 
     def is_running(taskSlurm):
 
@@ -200,15 +192,11 @@ def on_running():
 
         return scontrol(taskSlurm.slurm_id).flat_map(do_running)
 
-    def debug_(x):
-        print(x)
-        return x
-
-    (Request.read_state(TaskState.Submitted.value)
-     .flat_map(lambda task: Request.cross_query(task))
-     # .flat_map(lambda taskSlurm: scontrol(taskSlurm.slurm_id))
+    (rx.Observable.merge(tasks_to_track(), tasksimu_to_track())
+     .filter(lambda t: t.state == TaskState.Submitted)
+     .map(lambda t: t.id).to_list()
+     .flat_map(lambda l: Request.task_to_taskslurm(l))
      .flat_map(lambda taskSlurm: is_running(taskSlurm))
-     .map(debug_)
      .filter(lambda x: x[0])
      .map(lambda x: x[1])
      .subscribe(to_running))
@@ -216,19 +204,14 @@ def on_running():
 
 def on_complete():
     def to_complete(taskSlurm):
-        # taskSlurm_state = scontrol(taskSlurm.slurm_id)["job_state"]
-
-        # try:
         if taskSlurm is not None:
             print(f"{taskSlurm.slurm_id}, or TaskSlurm {taskSlurm.id} is completing.")
-            Request.taskSlurm_patch(taskSlurm.id,
+            Request.patch_taskSlurm(taskSlurm.id,
                                     {"slurm_state": TaskState.Completed.name})
 
             Request.patch(taskSlurm.task_id,
-                          {"state": TaskState.Completed.value,
+                          {"state": TaskState.Completed.name,
                            "finish": str(arrow.utcnow().datetime)})
-        # except Exception as e:
-        #     print(e)
 
     def is_completed(taskSlurm):
 
@@ -240,9 +223,23 @@ def on_complete():
 
         return scontrol(taskSlurm.slurm_id).flat_map(do_completed)
 
-    (Request.read_state(TaskState.Running.value)
-     .flat_map(lambda task: Request.cross_query(task))
+    # (Request.read_state(TaskState.Running.value)
+    #  .flat_map(lambda task: Request.cross_query(task))
+    #  .flat_map(lambda taskSlurm: is_completed(taskSlurm))
+    #  .filter(lambda x: x[0])
+    #  .map(lambda x: x[1])
+    #  .subscribe(to_complete))
+
+    # def debug_(x):
+    #     print(x)
+    #     return x
+
+    (rx.Observable.merge(tasks_to_track(), tasksimu_to_track())
+     .filter(lambda t: t.state in [TaskState.Running, TaskState.Submitted])
+     .map(lambda t: t.id).to_list()
+     .flat_map(lambda l: Request.task_to_taskslurm(l))
      .flat_map(lambda taskSlurm: is_completed(taskSlurm))
+     # .map(debug_)
      .filter(lambda x: x[0])
      .map(lambda x: x[1])
      .subscribe(to_complete))

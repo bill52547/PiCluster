@@ -2,6 +2,8 @@ from .depens import DepensGraph
 from ..interactive import web,base
 import rx
 
+
+# TODO 拆除
 class Graph(DepensGraph):
     def __init__(self,nodes=None, depens=None):        
         super().__init__(nodes,depens)

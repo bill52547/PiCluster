@@ -1,16 +1,16 @@
-import click
 from flask_restful import Api
 from flask import Flask
-from dxl.cluster.database2.api.tasks import add_resource
-from dxl.cluster.database2 import TaskTransactions, DataBase
-import yaml
-from dxl.core.debug import enter_debug
+import click
 
+from dxl.cluster.database.api.tasks import add_resource
+from dxl.cluster.database import TaskTransactions, DataBase
+from dxl.core.debug import enter_debug
 
 
 @click.group()
 def database():
     pass
+
 
 @database.command()
 def start():
@@ -23,15 +23,6 @@ def start():
     add_resource(api, TaskTransactions(db))
     app.run(host="0.0.0.0", port=23300, debug=True)
 
-# @click.command()
-# @click.argument("config", type=click.Path(exists=True))
-# def create(config):
-#     """
-#     Create new database.
-#     :param config: str, YAML config file.
-#     """
-#     with open(config, 'r') as fin:
-#         create_database(yaml.load(fin))
 
 if __name__ == "__main__":
     database()

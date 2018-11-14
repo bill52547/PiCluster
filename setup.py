@@ -17,7 +17,9 @@ setup(name='dxl-cluster',
           'marshmallow>=3.0.0b16',
           'psycopg2',
           'flask',
-          'flask-restful'
+          'flask-restful',
+          'requests',
+          'sqlalchemy'
       ],
       scripts=[],
       zip_safe=False)
