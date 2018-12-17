@@ -28,13 +28,16 @@ class CycleService:
 
     @classmethod
     def start(cls, cycle_intervel=None):
-        scheduler = BlockingScheduler()
-        scheduler.add_job(cls.cycle, 'interval', seconds=10)
-        try:
-            cls.cycle()
-            scheduler.start()
-        except (KeyboardInterrupt, SystemExit):
-            pass
+        # scheduler = BlockingScheduler()
+        print("******************cycleStarts******************")
+        rx.Observable.interval(10000).subscribe(lambda x: cls.cycle)
+
+        # scheduler.add_job(cls.cycle, 'interval', seconds=10)
+        # try:
+        #     cls.cycle()
+        #     scheduler.start()
+        # except (KeyboardInterrupt, SystemExit):
+        #     pass
 
 
 def task_reset():
@@ -64,12 +67,6 @@ def tasks_to_track(num_limit=3):
     """
     Select 3 (by defualt) task simu, and track all sub
     """
-    # task_simu = (Request.tasksimu_to_check(num_limit)
-    #              .flat_map(lambda t: Request.tasksimu_id_cast(t)))
-
-    # task_depends = (Request.tasksimu_to_check(num_limit)
-    #                 .flat_map(lambda t: Request.taskSimu_depends(t))
-    #                 .map(lambda x: x[0]))
 
     return (Request.tasksimu_to_check(num_limit)
             .flat_map(lambda t: Request.taskSimu_depends(t))
@@ -223,23 +220,11 @@ def on_complete():
 
         return scontrol(taskSlurm.slurm_id).flat_map(do_completed)
 
-    # (Request.read_state(TaskState.Running.value)
-    #  .flat_map(lambda task: Request.cross_query(task))
-    #  .flat_map(lambda taskSlurm: is_completed(taskSlurm))
-    #  .filter(lambda x: x[0])
-    #  .map(lambda x: x[1])
-    #  .subscribe(to_complete))
-
-    # def debug_(x):
-    #     print(x)
-    #     return x
-
     (rx.Observable.merge(tasks_to_track(), tasksimu_to_track())
      .filter(lambda t: t.state in [TaskState.Running, TaskState.Submitted])
      .map(lambda t: t.id).to_list()
      .flat_map(lambda l: Request.task_to_taskslurm(l))
      .flat_map(lambda taskSlurm: is_completed(taskSlurm))
-     # .map(debug_)
      .filter(lambda x: x[0])
      .map(lambda x: x[1])
      .subscribe(to_complete))

@@ -1,5 +1,5 @@
 from functools import wraps
-from typing import List, Set
+from typing import List
 import datetime
 import requests
 import json
@@ -31,6 +31,7 @@ def connection_error_handle(func):
 
 
 class Request:
+    # TODO need refactor
     _url_task = req_url(name=c['name'], ip=c['host'], port=c["port"], version=1)
     _url_taskSlurm = req_url(name='taskslrum', ip=c['host'], port=c["port"], version=1)
     _url_postgrest = "http://202.120.1.61:3000"
@@ -52,6 +53,11 @@ class Request:
 
     @classmethod
     @connection_error_handle
+    def delete_cascade(cls, taskSimu_id):
+        requests.delete(cls._url_postgrest + f"/taskSimu?and=(id.eq.{taskSimu_id})")
+
+    @classmethod
+    @connection_error_handle
     def read(cls, task_id: int):
         result = json.loads(requests.get(cls._url_postgrest + f"/tasks?and=(id.eq.{task_id})").text)
         return rx.Observable.from_(result).map(lambda t: Task(**taskSchema.load(t)))
@@ -70,8 +76,12 @@ class Request:
 
     @classmethod
     @connection_error_handle
-    def read_taskSimu(cls):
-        response = json.loads(requests.get(cls._url_postgrest_taskSimu).text)
+    def read_taskSimu(cls, id=None):
+        if id is None:
+            response = json.loads(requests.get(cls._url_postgrest_taskSimu).text)
+            return rx.Observable.from_(response).map(lambda t: TaskSimu(**taskSimuSchema.load(t)))
+
+        response = json.loads(requests.get(cls._url_postgrest_taskSimu + f"?and=(id.eq.{id})").text)
         return rx.Observable.from_(response).map(lambda t: TaskSimu(**taskSimuSchema.load(t)))
 
     @classmethod
@@ -136,28 +146,6 @@ class Request:
         r = requests.get(cls.url_rpc_call("dependency_checking"), params=querystring).text
         return rx.Observable.from_([int(r)])
 
-    # @classmethod
-    # @connection_error_handle
-    # def read_from_list(cls, ids: List[int]):
-    #     """
-    #     Get a Task obj stream with given list of ids.
-    #     :param ids:
-    #     :return:
-    #     """
-    #     def query(observer):
-    #         for id in ids:
-    #             observer.on_next(cls.read(id))
-    #         observer.on_completed()
-    #     return rx.Observable.create(query)
-
-    # @classmethod
-    # @connection_error_handle
-    # def read_taskSlurm(cls, taskSlurm_id: int):
-    #     def query(observer):
-    #         observer.on_next(json.loads(requests.get(url_taskSlurm(taskSlurm_id)).text))
-    #         observer.on_completed()
-    #     return rx.Observable.create(query).map(lambda t: TaskSlurm(**taskSlurmSchema.load(t)))
-
     @classmethod
     @connection_error_handle
     def patch_taskSlurm(cls, taskSlurm_id: int, patch: dict):
@@ -169,53 +157,6 @@ class Request:
     def patch(cls, task_id: int, patch: dict):
         querystring = {"id": f"eq.{task_id}"}
         requests.patch(cls._url_postgrest_tasks, params=querystring, data=patch)
-
-    # @classmethod
-    # @connection_error_handle
-    # def number_of_pending_depends(cls, task_slurm_ids: List[int]):
-    #     """
-    #     List of TaskSlurm id ->
-    #     List of corresponding Task objects ->
-    #     Sum up Task.state != TaskState.Completed.value
-    #
-    #     The 0 result of this the streaming indicates that all depends completed. And the task is submittable.
-    #     :param task_slurm_ids:
-    #     :return:
-    #     """
-    #     buf = list()
-    #     for task_slurm_id in task_slurm_ids:
-    #         buf.append(cls.read_taskSlurm(task_slurm_id))
-    #
-    #     return (rx.Observable.from_(buf).merge_all()
-    #             .map(lambda t: t.task_id)
-    #             .map(lambda task_id: Request.read(task_id).state.value)
-    #             .map(lambda i: i != TaskState.Completed.value).sum())
-
-    # @classmethod
-    # @connection_error_handle
-    # def reverse_cross_query(cls, taskSlurm: TaskSlurm):
-    #     """
-    #     Query Task obj using TaskSlurm obj.
-    #     :param taskSlurm:
-    #     :return:
-    #     """
-    #     def query(observer):
-    #         observer.on_next(json.loads(requests.get(url(taskSlurm.task_id)).text))
-    #     return rx.Observable.create(query).map(lambda t: Task(**taskSchema.load(t)))
-    #
-    #
-    # @classmethod
-    # @connection_error_handle
-    # def cross_query(cls, task: Task):
-    #     """
-    #     Query TaskSlurm by Task.
-    #     :param task:
-    #     :return:
-    #     """
-    #     def query(observer):
-    #         observer.on_next(json.loads(requests.get(url_jointask(task.id)).text))
-    #         observer.on_completed()
-    #     return rx.Observable.create(query).map(lambda t: TaskSlurm(**taskSlurmSchema.load(t)))
 
     @classmethod
     @connection_error_handle
