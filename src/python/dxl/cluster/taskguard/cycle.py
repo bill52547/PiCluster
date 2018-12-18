@@ -25,19 +25,28 @@ class CycleService:
         print("******************on_complete******************")
         on_complete()
 
-
     @classmethod
     def start(cls, cycle_intervel=None):
-        # scheduler = BlockingScheduler()
-        print("******************cycleStarts******************")
-        rx.Observable.interval(10000).subscribe(lambda x: cls.cycle)
+        scheduler = BlockingScheduler()
+        scheduler.add_job(cls.cycle, 'interval', seconds=10)
+        try:
+            cls.cycle()
+            scheduler.start()
+        except (KeyboardInterrupt, SystemExit):
+            pass
 
-        # scheduler.add_job(cls.cycle, 'interval', seconds=10)
-        # try:
-        #     cls.cycle()
-        #     scheduler.start()
-        # except (KeyboardInterrupt, SystemExit):
-        #     pass
+    # @classmethod
+    # def start(cls, cycle_intervel=None):
+    #     # scheduler = BlockingScheduler()
+    #     print("******************cycleStarts******************")
+    #     rx.Observable.interval(10000).subscribe(lambda x: cls.cycle)
+    #
+    #     # scheduler.add_job(cls.cycle, 'interval', seconds=10)
+    #     # try:
+    #     #     cls.cycle()
+    #     #     scheduler.start()
+    #     # except (KeyboardInterrupt, SystemExit):
+    #     #     pass
 
 
 def task_reset():

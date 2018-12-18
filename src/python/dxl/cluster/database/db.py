@@ -1,7 +1,5 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
-import attr
-import typing
 
 import contextlib
 import yaml
@@ -29,15 +27,20 @@ def maker(eng):
     return scoped_session(sessionmaker(eng))
 
 
-@attr.s
 class DataBase:
-    user: str = 'postgres'
-    passwd: str = 'mysecretpassword'
-    database: str = 'postgres'
-    ip: str = '127.0.0.1'
-    port: str = '8080'
-    maker: typing.Any = None
-    engine: typing.Any = None
+    def __init__(self,
+                 ip,
+                 user: str = 'postgres',
+                 passwd: str = 'mysecretpasswd',
+                 database: str = 'postgres',
+                 port: str = '8080'):
+        self.user = user
+        self.passwd = passwd
+        self.database = database
+        self.ip = ip
+        self.port = port
+        self.maker = None
+        self.engine = None
 
     def get_or_create_engine(self):
         if self.engine is None:
@@ -46,7 +49,6 @@ class DataBase:
 
     def get_or_create_maker(self):
         if self.maker is None:
-            # self.maker = scoped_session(sessionmaker(self.get_or_create_engine()))
             self.maker = sessionmaker(self.get_or_create_engine())
         return self.maker
 
@@ -55,7 +57,6 @@ class DataBase:
         sess = self.get_or_create_maker()()
         try:
             yield sess
-            # sess.expunge_all()
         except Exception as e:
             sess.rollback()
             raise e

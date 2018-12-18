@@ -5,13 +5,13 @@ import rx
 
 # TODO 拆除
 class Graph(DepensGraph):
-    def __init__(self,nodes=None, depens=None):        
+    def __init__(self,nodes=None, depens=None):
         super().__init__(nodes,depens)
 
     def all_runable(self):
-        runable = self.free_nodes()        
-        return runable 
-        
+        runable = self.free_nodes()
+        return runable
+
     def mark_complete(self):
         node = self.nodes()
         node = (rx.Observable.from_(node).filter(lambda t:web.Request().read(t).state==base.State.Complete).to_list()
