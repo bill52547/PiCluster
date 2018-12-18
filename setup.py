@@ -21,10 +21,12 @@ setup(name='dxl-cluster',
           'fs',
           'click',
           'rx',
-          'dask',
-          'numpy',
-          'requests',
-          'flask'
+          'pyyaml',
+          'attrs',
+          'marshmallow',
+          'flask',
+          'flask-restful',
+          'arrow'
       ],
       scripts=[],
       zip_safe=False)
