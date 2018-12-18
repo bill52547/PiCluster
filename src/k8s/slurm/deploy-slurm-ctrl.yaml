@@ -1,0 +1,51 @@
+# ------------------- Dashboard Deployment ------------------- #
+
+apiVersion: apps/v1beta1 
+kind: Deployment
+metadata:
+  labels:
+    slurm-app: sctrl
+  name: slurm-control
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      slurm-app: sctrl
+  template:
+    metadata:
+      labels:
+        slurm-app: sctrl
+    spec:
+      containers:
+      - image: hub.tek-pi.com/env/slurm-ctrl:latest
+        name: slurm-client
+        command: [ "/bin/bash", "-c" ]
+        args: 
+        - /etc/profile.d/startup.sh;
+          while true; do 
+            sleep 3600; 
+          done;
+        ports:
+        - containerPort: 7321
+          containerPort: 6817
+          containerPort: 6818
+        volumeMounts:
+        - mountPath: /etc/slurm-llnl
+          name: slurm-config
+        - mountPath: /opt/spack
+          name: spack
+        - mountPath: /home/data
+          name: data
+      volumes:
+      - name: slurm-config
+        hostPath: 
+          path: /mnt/gluster/k8s-pv/slurm-config
+          type: Directory
+      - name: spack
+        hostPath:
+          path: /mnt/nfs/spack
+          type: Directory
+      - name: data
+        hostPath:
+          path: /mnt/gluster/k8s-pv/data
+          type: Directory

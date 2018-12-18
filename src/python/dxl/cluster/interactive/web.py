@@ -1,13 +1,15 @@
-import json
 from functools import wraps
+from typing import List
+import datetime
 import requests
+import json
 import rx
 
-from .exceptions import TaskDatabaseConnectionError, TaskNotFoundError
+from ..web.urls import req_url
 from ..config import config as c
-from .base import Task,State
-
-import datetime
+from ..database.model import TaskState, Task, TaskSimu
+from ..database.model import taskSchema, taskSlurmSchema, TaskSlurm, taskSimuSchema
+from .exceptions import TaskDatabaseConnectionError, TaskNotFoundError
 
 
 def now(local=False):
@@ -15,29 +17,6 @@ def now(local=False):
         return datetime.datetime.now()
     else:
         return datetime.datetime.utcnow()
-
-def api_root(version):
-    return "/api/v{version}".format(version=version)
-
-
-def api_path(name, suffix=None, version=None, base=None):
-    if base is None:
-        base = api_root(version)
-    else:
-        if base.startswith('/'):
-            base = base[1:]
-        base = "{root}/{base}".format(root=api_root(version), base=base)
-
-    if base.endswith('/'):
-        base = base[:-1]
-    if suffix is None:
-        return "{base}/{name}".format(base=base, name=name)
-    else:
-        return "{base}/{name}/{suffix}".format(base=base, name=name, suffix=suffix)
-
-
-def req_url(name, ip=None, port=None, suffix=None, version=None, base=None):
-    return 'http://{ip}:{port}{path}'.format(ip=ip, port=port, path=api_path(name, suffix, version, base))
 
 
 def connection_error_handle(func):
@@ -50,70 +29,138 @@ def connection_error_handle(func):
                 "Task database server connection failed. Details:\n{e}".format(e=e))
     return wrapper
 
-def url(tid=None):    
-    if tid is None:
-        return req_url(c['names'], 'localhost', c['port'], None, c['version'], c['base'])
-    else:
-        return req_url(c['name'], 'localhost', c['port'], tid, c['version'], c['base'])
 
-def parse_json(s: 'json string'):
-    return Task.from_json(s)
+class Request:
+    # TODO need refactor
+    _url_task = req_url(name=c['name'], ip=c['host'], port=c["port"], version=1)
+    _url_taskSlurm = req_url(name='taskslrum', ip=c['host'], port=c["port"], version=1)
+    _url_postgrest = "http://202.120.1.61:3000"
+    _url_postgrest_tasks = "http://202.120.1.61:3000/tasks"
+    _url_postgrest_taskSlurm = "http://202.120.1.61:3000/taskSlurm"
+    _url_postgrest_taskSimu = "http://202.120.1.61:3000/taskSimu"
 
-    
-class Request(Task):                 
+    @staticmethod
+    def url_rpc_call(func):
+        return f"http://202.120.1.61:3000/rpc/{func}"
+
+    @classmethod
     @connection_error_handle
-    def create(self,task):
+    def create(cls, task):
         task_json = task.to_json()
-        r = requests.post(url(), {'task': task_json}).json()
+        r = requests.post(cls._url_task, json=task_json).json()
         task.id = r['id']
         return task
 
+    @classmethod
     @connection_error_handle
-    def read(self,tid):
-        r = requests.get(url(tid))
-        if r.status_code == 200:
-            return parse_json(r.text)  
+    def delete_cascade(cls, taskSimu_id):
+        requests.delete(cls._url_postgrest + f"/taskSimu?and=(id.eq.{taskSimu_id})")
+
+    @classmethod
+    @connection_error_handle
+    def read(cls, task_id: int):
+        result = json.loads(requests.get(cls._url_postgrest + f"/tasks?and=(id.eq.{task_id})").text)
+        return rx.Observable.from_(result).map(lambda t: Task(**taskSchema.load(t)))
+
+    @classmethod
+    @connection_error_handle
+    def read_all(cls):
+        task_json = json.loads(requests.get(cls._url_postgrest + f"/tasks?").text)
+        return rx.Observable.from_list(task_json).map(lambda t: Task(**taskSchema.load(t)))
+
+    @classmethod
+    @connection_error_handle
+    def read_state(cls, state: int):
+        task_json = json.loads(requests.get(cls._url_postgrest + f'/tasks?and=(state.eq.{TaskState(state).name})').text)
+        return rx.Observable.from_list(task_json).map(lambda t: Task(**taskSchema.load(t)))
+
+    @classmethod
+    @connection_error_handle
+    def read_taskSimu(cls, id=None):
+        if id is None:
+            response = json.loads(requests.get(cls._url_postgrest_taskSimu).text)
+            return rx.Observable.from_(response).map(lambda t: TaskSimu(**taskSimuSchema.load(t)))
+
+        response = json.loads(requests.get(cls._url_postgrest_taskSimu + f"?and=(id.eq.{id})").text)
+        return rx.Observable.from_(response).map(lambda t: TaskSimu(**taskSimuSchema.load(t)))
+
+    @classmethod
+    @connection_error_handle
+    def taskSimu_depends(cls, taskSimu_id: int):
+        querystring = {"tasksimu_id": str(taskSimu_id)}
+        result = requests.get(cls.url_rpc_call('tasksimu_depends'), params=querystring).text
+        return rx.Observable.from_([(i['task_id'], i['task_state']) for i in json.loads(result)])
+
+    @classmethod
+    @connection_error_handle
+    def depends_completion(cls, taskSimu_id: int):
+        """
+        Number of not completed tasks of a taskSimu.
+        """
+        querystring = {"tasksimu_id": str(taskSimu_id)}
+        result = requests.get(cls.url_rpc_call('depends_completion'), params=querystring).text
+        return rx.Observable.from_(result)
+
+    @classmethod
+    @connection_error_handle
+    def tasksimu_to_check(cls, num_limit: int):
+        """
+        taskSimus under tracking.
+        """
+        querystring = {"num_limit": str(num_limit)}
+        result = requests.get(cls.url_rpc_call("tasksimu_to_check"), params=querystring).text
+        return rx.Observable.from_([i["tasksimu_id"] for i in json.loads(result)])
+
+    @classmethod
+    @connection_error_handle
+    def read_from_list(cls, task_ids: List[int]):
+        if len(task_ids) != 0:
+            querystring = {"ids": str(set(task_ids))}
+            response = requests.get(cls.url_rpc_call("read_from_list"), params=querystring).text
+            return rx.Observable.from_(json.loads(response)).map(lambda t: Task(**taskSchema.load(t)))
         else:
-            raise TaskNotFoundError(tid)
+            return ""
 
+    @classmethod
     @connection_error_handle
-    def read_all(self):
-        tasks = requests.get(url()).text
-        task = json.loads(tasks)
-        return (rx.Observable.from_(task).map(parse_json))
+    def task_to_taskslurm(cls, task_ids: List[int]):
+        if len(task_ids) != 0:
+            querystring = {"ids": str(set(task_ids))}
+            response = requests.get(cls.url_rpc_call("task_to_taskslurm"), params=querystring).text
+            return (rx.Observable.from_(json.loads(response))
+                    .map(lambda t: TaskSlurm(**taskSlurmSchema.load(t))))
+        else:
+            return ""
 
+    @classmethod
     @connection_error_handle
-    def update(self,task):
-        task_json = task.to_json()
-        r = requests.put(url(), {'task': task_json})
+    def tasksimu_id_cast(cls, taskSimu_id: int):
+        querystring = {"tasksimu_id": str(taskSimu_id)}
+        r = requests.get(cls.url_rpc_call("tasksimu_id_cast"), params=querystring).text
+        return rx.Observable.from_(json.loads(r)).map(lambda d: d["task_id"])
+
+    @classmethod
+    @connection_error_handle
+    def dependency_checking(cls, task_id: int):
+        querystring = {"task_id": str(task_id)}
+        r = requests.get(cls.url_rpc_call("dependency_checking"), params=querystring).text
+        return rx.Observable.from_([int(r)])
+
+    @classmethod
+    @connection_error_handle
+    def patch_taskSlurm(cls, taskSlurm_id: int, patch: dict):
+        querystring = {"id": f"eq.{taskSlurm_id}"}
+        requests.patch(cls._url_postgrest_taskSlurm, params=querystring, data=patch)
+
+    @classmethod
+    @connection_error_handle
+    def patch(cls, task_id: int, patch: dict):
+        querystring = {"id": f"eq.{task_id}"}
+        requests.patch(cls._url_postgrest_tasks, params=querystring, data=patch)
+
+    @classmethod
+    @connection_error_handle
+    def delete(cls, id):
+        r = requests.delete(url(id))
         if r.status_code == 404:
-            raise TaskNotFoundError(task_json['id'])
-
-    @connection_error_handle
-    def delete(self,tid):
-        r = requests.delete(url(tid))
-        if r.status_code == 404:
-            raise TaskNotFoundError(tid)
-
-
-def submit(task): 
-    task = Task.from_json(task.to_json())
-    task.state = State.Pending
-    Request().update(task)
-    return task
-
-
-def start(task):
-    task = Task.from_json(task.to_json())
-    task.start = now()
-    task.state = State.Runing
-    Request().update(task)
-    return task
-
-
-def complete(task):
-    task = Task.from_json(task.to_json())
-    task.end = now()
-    task.state = State.Complete
-    Request().update(task)
-    return task
+            raise TaskNotFoundError(id)

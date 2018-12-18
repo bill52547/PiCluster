@@ -1,0 +1,3 @@
+#!/bin/bash
+echo Runing startup script...
+/etc/init.d/munge restart

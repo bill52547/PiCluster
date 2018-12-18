@@ -1,41 +1,40 @@
 import re
 from enum import Enum
-from typing import Dict, Iterable
-import numpy as np
+from typing import Dict
 import rx
-from dxl.cluster.web.urls import req_url
 import requests
 
 from jfs.directory import Directory
-from jfs.file import File
 
 import json
-import time
 
-from ..interactive.base import Task, State, Type, Worker, TaskInfo
+from rx import Observable
+# from ..database.model import Worker
+from ..database.api.tasks import TaskState
+from ..interactive.base import Task, TaskInfo
 from ..interactive import web
 from .base import Cluster
 
 
-# from .forcluster import scancel,sbatch,squeue
+# TODO remove useless parts
 
-def scontrol_url(tid):
-    return f'http://www.tech-pi.com:1888/api/v1/slurm/scontrol?job_id={tid}'
+def scontrol_url(id):
+    return f'http://202.120.1.61:1888/api/v1/slurm/scontrol?job_id={id}'
 
 
-def scancel_url(tid):
-    return 'http://www.tech-pi.com:1888/api/v1/slurm/scancel?job_id={}'.format(tid)
+def scancel_url(id):
+    return f'http://202.120.1.61:1888/api/v1/slurm/scancel?job_id={id}'
 
 
 def squeue_url():
-    return 'http://www.tech-pi.com:1888/api/v1/slurm/squeue'
+    return 'http://202.120.1.61:1888/api/v1/slurm/squeue'
 
 
-def sbatch_url(sargs, file, work_directory):
-    return f'http://www.tech-pi.com:1888/api/v1/slurm/sbatch?arg={sargs}&file={file}&work_dir={work_directory}'
+def sbatch_url(args, filename, workdir):
+    return f'http://202.120.1.61:1888/api/v1/slurm/sbatch?arg={args}&file={filename}&work_dir={workdir}'
 
 
-class SlurmStatue(Enum):
+class SlurmState(Enum):
     Running = 'R'
     Completing = 'CG'
     Completed = 'E'
@@ -43,17 +42,17 @@ class SlurmStatue(Enum):
     Failed = 'F'
 
 
-def slurm_statue2task_statue(s: SlurmStatue):
+def slurm_state2task_state(s: SlurmState):
     return {
-        SlurmStatue.Running: State.Runing,
-        SlurmStatue.Completing: State.Complete,
-        SlurmStatue.Completed: State.Complete,
-        SlurmStatue.Pending: State.Pending,
-        SlurmStatue.Failed: State.Failed
+        SlurmState.Running: TaskState.Running ,
+        SlurmState.Completing: TaskState.Completed,
+        SlurmState.Completed: TaskState.Completed,
+        SlurmState.Pending: TaskState.Pending,
+        SlurmState.Failed: TaskState.Failed
     }[s]
 
 
-class ScontrolStatue(Enum):
+class ScontrolState(Enum):
     Pending = 'PENDING'
     Running = 'RUNNING'
     Suspended = 'SUSPENDED'
@@ -64,53 +63,57 @@ class ScontrolStatue(Enum):
     NodeFailed = 'NODE_FAILED'
 
 
-def scontrol_statue2task_statue(s: ScontrolStatue):
+def scontrol_state2task_state(s: ScontrolState):
     scontrol2state_mapping = {
-        ScontrolStatue.Pending: State.Pending,
-        ScontrolStatue.Running: State.Runing,
-        ScontrolStatue.Suspended: State.Runing,
-        ScontrolStatue.Complete: State.Complete,
-        ScontrolStatue.Failed: State.Failed,
-        ScontrolStatue.Canceled: State.Failed,
-        ScontrolStatue.Timeout: State.Failed,
-        ScontrolStatue.NodeFailed: State.Failed
+        ScontrolState.Pending: TaskState.Pending,
+        ScontrolState.Running: TaskState.Running,
+        ScontrolState.Suspended: TaskState.Running,
+        ScontrolState.Complete: TaskState.Completed,
+        ScontrolState.Failed: TaskState.Failed,
+        ScontrolState.Canceled: TaskState.Failed,
+        ScontrolState.Timeout: TaskState.Failed,
+        ScontrolState.NodeFailed: TaskState.Failed
     }
-    return scontrol2state_mapping[ScontrolStatue(s)]
+    return scontrol2state_mapping[ScontrolState(s)]
 
 
 class TaskSlurmInfo:
-    def __init__(self, partition=None, command=None, usr=None,
-                 statue=None,
+    def __init__(self,
+                 partition=None,
+                 command=None,
+                 usr=None,
+                 state=None,
                  run_time=None,
                  nb_nodes=None,
                  node_list=None,
-                 sid=None):
-        self.sid = sid
-        if isinstance(self.sid, str):
-            self.sid = int(self.sid)
+                 id=None):
+
+        self.id = id
+        if isinstance(self.id, str):
+            self.id = int(self.id)
         self.partition = partition
         self.command = command
         self.usr = usr
-        if statue == None:
-            self.statue = SlurmStatue('R')
-        elif isinstance(statue, SlurmStatue):
-            self.statue = statue
+        if state is None:
+            self.state = SlurmState('R')
+        elif isinstance(state, SlurmState):
+            self.state = state
         else:
-            self.statue = SlurmStatue(statue)
+            self.state = SlurmState(state)
         self.run_time = run_time
-        if nb_nodes == None:
+        if nb_nodes is None:
             self.nb_nodes = 0
         else:
             self.nb_nodes = int(nb_nodes)
         self.node_list = node_list
 
-    # self.depens = depens
-
     def __eq__(self, m):
         return isinstance(m, TaskSlurmInfo) and m.unbox() == self.unbox()
 
     def unbox(self):
-        return self.sid, self.partition, self.command, self.usr, self.statue, self.run_time, self.nb_nodes, self.node_list
+        return (self.id, self.partition, self.command,
+                self.usr, self.state, self.run_time,
+                self.nb_nodes, self.node_list)
 
     @classmethod
     def parse_dict(cls, dct: dict):
@@ -121,35 +124,55 @@ class TaskSlurmInfo:
                              dct['time'],
                              dct['nodes'],
                              dct['node_list'],
-                             sid=dct['job_id'])
+                             id=dct['job_id'])
 
     def to_dict(self) -> Dict[str, str]:
         return {
-            'job_id': self.sid,
+            'job_id': self.id,
             'partition': self.partition,
             'name': self.command,
             'user': self.usr,
-            'status': self.statue.value,
+            'status': self.state.value,
             'time': self.run_time,
             'nodes': self.nb_nodes,
             'node_list': self.node_list
         }
 
     def __repr__(self):
-        return f'taskslurm(sid={self.sid})'
+        return f'taskslurm(id={self.id})'
 
 
 class TaskSlurm(Task):
-    def __init__(self, script_file, info=None, tid=None, desc='',
-                 workdir='.', father=None, statue=None, time_stamp=None,
-                 dependency=None, is_root=True, data=None, ttype=Type.Script):
-        super().__init__(tid=tid, desc=desc, workdir=workdir, worker=Worker.Slurm, father=father, ttype=ttype,
-                         state=statue, time_stamp=time_stamp, dependency=dependency, is_root=is_root, data=data,
-                         script_file=script_file, info=info)
+    def __init__(self,
+                 task_id=None,
+                 state=None,
+                 depends=[],
+                 create=None,
+                 submit=None,
+                 finish=None,
+                 details={}):
+        super().__init__(id=details["id"],
+                         state=state,
+                         depends=depends,
+                         create=create,
+                         submit=submit,
+                         finish=finish,
+                         details=details)
 
-    @property
-    def sid(self):
-        return self.info['job_id']
+        self.task_id = task_id
+
+        if details["worker"] is None:
+            self.worker = Worker.NoAction
+        else:
+            self.worker = details["worker"]
+
+        self.workdir = details["workdir"]
+        self.script = details["script"]
+
+    # @property
+    # def id(self):
+    #     #TODO id is not currect
+    #     return self.task_id
 
 
 def sid_from_submit(s: str):
@@ -157,6 +180,9 @@ def sid_from_submit(s: str):
 
 
 def squeue() -> 'Observable[TaskSlurmInfo]':
+    """
+    :return: Obserable of tasks retrived from slurm cluter using squeue command.
+    """
     infos = requests.get(squeue_url()).text
     info = json.loads(infos)
     return (rx.Observable.from_(info)
@@ -164,81 +190,106 @@ def squeue() -> 'Observable[TaskSlurmInfo]':
             .filter(lambda l: l is not None))
 
 
-def sbatch(workdir: Directory, filename, args):
+def sbatch(workdir: Directory, filename):
+    """
+    Submitting new task.
+    :param workdir:
+    :param filename: NOT USED
+    :param args: Script file name "run.sh" by default.
+    :return:
+    """
+    # TODO args and filename are set the same. because all developers forget why they were set, too bad, so sad :(
+    args=filename
+    url_ = sbatch_url(args, filename, workdir)
     result = requests.post(sbatch_url(args, filename, workdir)).json()
+    with open('/tmp/output.txt', 'a') as fout:
+        print(type(result), result, file=fout)
+        try:
+            print(result['job_id'], file=fout)
+        except Exception as e:
+            print(e, file=fout)
+            print(result, file=fout)
+            raise ValueError(str(e)+"result:"+result+"URL!!!:"+url_)
     return result['job_id']
 
 
-def scancel(sid: int):
-    if sid is None:
+def scancel(id: int):
+    if id is None:
         return False
-    requests.delete(scancel_url(sid))
+    requests.delete(scancel_url(id))
 
 
-def scontrol(sid: int):
-    if sid is None:
+def scontrol(id: int):
+    # TODO slurm job state is untrackable soon after job exites. need add unknow state
+    def query(observer):
+        try:
+            result = requests.get(scontrol_url(id)).json()
+            observer.on_next(result['job_state'])
+            observer.on_completed()
+        except:
+            pass
+
+    return rx.Observable.create(query)
+
+
+def get_state(id: int):
+    if id is None:
         return False
-    result = requests.get(scontrol_url(sid)).json()
-    return result
-
-
-def get_statue(sid: int):
-    if sid is None:
-        return False
-    state = scontrol_statue2task_statue(scontrol(sid)['job_state'])
+    state = scontrol_state2task_state(scontrol(id)['job_state'])
     return state
 
 
-def find_sid(sid):
-    return lambda tinfo: int(tinfo.sid) == int(sid)
+def find_id(id):
+    return lambda tinfo: int(tinfo.id) == int(id)
 
 
-def is_end(sid):
-    if sid is None:
+def is_end(id):
+    if id is None:
         return False
     result = (squeue()
-              .filter(find_sid(sid))
+              .filter(find_id(id))
               .count().to_list().to_blocking().first())
-    return result[0] == SlurmStatue.Completed
+    return result[0] == SlurmState.Completed
 
 
-def is_complete(sid):
-    return is_end(sid)
+def is_complete(id):
+    return is_end(id)
 
 
-def get_task_info(sid: int) -> TaskSlurmInfo:
-    result = squeue().filter(find_sid(sid)).to_list().to_blocking().first()
+def get_slurm_info(id: int) -> TaskSlurmInfo:
+    result = squeue().filter(find_id(id)).to_list().to_blocking().first()
     if len(result) == 0:
         return None
     return result[0]
 
 
 class Slurm(Cluster):
+    """
+    Handle a slurm task life cycle.
+    """
     @classmethod
     def submit(cls, t: TaskSlurm):
-        sid = sbatch(t.workdir, t.script_file[0], t.info['args'])
-        slurm_info = get_task_info(sid)
-        new_info = TaskInfo(sid=sid, nb_nodes=slurm_info.nb_nodes, node_list=slurm_info.node_list,
-                            nb_GPU=t.info['GPUs'], args=t.info['args'])
-        # new_task = t.update_info(new_info.to_dict())
+        id = sbatch(t.workdir, t.script)
+        slurm_info = get_slurm_info(id)
+        new_info = TaskInfo(id=id,
+                            nb_nodes=slurm_info.nb_nodes,
+                            node_list=slurm_info.node_list)
+
         new_task = t.update_info(new_info.to_dict())
-        nt = new_task.update_state(State.Runing)
-        # nt = nt.update_start()
+        nt = new_task.update_state(TaskState.Runing)
+
         web.Request().update(nt)
         return nt
 
     @classmethod
     def update(cls, t: TaskSlurm):
-        if t.info['job_id'] is None:
+        if t.task_id is None:
             return t
         else:
-            state = get_statue(t.info['job_id'])
+            state = get_state(t.task_id)
             nt = t.update_state(state)
             return nt
 
     @classmethod
     def cancel(cls, t: TaskSlurm):
-        """
-        取消任务
-        """
-        scancel(t.sid)
+        scancel(t.id)

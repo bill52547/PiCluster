@@ -23,10 +23,13 @@ setup(name='dxl-cluster',
           'rx',
           'pyyaml',
           'attrs',
-          'marshmallow',
+          'marshmallow>=3.0.0b16',
+          'psycopg2',
           'flask',
           'flask-restful',
           'arrow'
+          'requests',
+          'sqlalchemy'
       ],
       scripts=[],
       zip_safe=False)

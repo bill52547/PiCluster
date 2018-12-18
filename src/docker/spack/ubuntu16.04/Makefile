@@ -1,5 +1,5 @@
 #repo = 192.168.1.133:5000
-repo = hub.tech-pi.com/env
+repo = hub.tek-pi.com/env
 name = spack-ubuntu
 VERSION := $(shell cat version | tr -d '\n')
 image :
@@ -11,7 +11,9 @@ pull :
 rel :
 	sudo docker run --network host -v $(SPACK_ROOT):/opt/spack -it --rm $(repo)/$(name)
 dev :
-	sudo docker run --network host -v $(SPACK_DEVELOP_ROOT):/opt/spack -it --rm $(repo)/$(name)
+	sudo docker run --network host \
+			-v $(SPACK_DEVELOP_ROOT):/opt/spack \
+			-it --rm $(repo)/$(name)
 test :
 	sudo docker run -v $(SPACK_DEVELOP_ROOT):/opt/spack -it --rm ubuntu:16.04
 
