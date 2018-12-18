@@ -29,18 +29,8 @@ def maker(eng):
     return scoped_session(sessionmaker(eng))
 
 
+@attr.s
 class DataBase:
-<<<<<<< HEAD:src/python/dxl/cluster/database2/db.py
-    def __init__(self, user: str = 'postgres', passwd: str = 'mysecretpasswd',
-                 database: str = 'postgres',
-                 port: str = '8080'):
-        self.user = user
-        self.passwd = passwd
-        self.database = database
-        self.port = port
-        self.maker = None
-        self.engine = None
-=======
     user: str = 'postgres'
     passwd: str = 'mysecretpassword'
     database: str = 'postgres'
@@ -48,7 +38,6 @@ class DataBase:
     port: str = '8080'
     maker: typing.Any = None
     engine: typing.Any = None
->>>>>>> task-refactor:src/python/dxl/cluster/database/db.py
 
     def get_or_create_engine(self):
         if self.engine is None:
