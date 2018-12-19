@@ -35,19 +35,6 @@ class CycleService:
         except (KeyboardInterrupt, SystemExit):
             pass
 
-    # @classmethod
-    # def start(cls, cycle_intervel=None):
-    #     # scheduler = BlockingScheduler()
-    #     print("******************cycleStarts******************")
-    #     rx.Observable.interval(10000).subscribe(lambda x: cls.cycle)
-    #
-    #     # scheduler.add_job(cls.cycle, 'interval', seconds=10)
-    #     # try:
-    #     #     cls.cycle()
-    #     #     scheduler.start()
-    #     # except (KeyboardInterrupt, SystemExit):
-    #     #     pass
-
 
 def task_reset():
     """
@@ -76,7 +63,6 @@ def tasks_to_track(num_limit=3):
     """
     Select 3 (by defualt) task simu, and track all sub
     """
-
     return (Request.tasksimu_to_check(num_limit)
             .flat_map(lambda t: Request.taskSimu_depends(t))
             .map(lambda x: x[0]).to_list()

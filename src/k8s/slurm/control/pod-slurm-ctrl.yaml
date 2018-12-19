@@ -5,8 +5,6 @@ metadata:
   labels:
     name: sctrl
 spec:
-  nodeName: cs0
-  #hostNetwork: true
   containers:
   - image: hub.tek-pi.com/env/slurm-ctrl:latest
     name: slurm-ctrl

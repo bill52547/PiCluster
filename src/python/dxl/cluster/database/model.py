@@ -19,15 +19,6 @@ class TaskState(enum.Enum):
     Failed = 6
 
 
-# TODO tobe removed
-# class Worker(Enum):
-#     NoAction = 0,
-#     Local = 1,
-#     MultiThreading = 2,
-#     MultiProcessing = 3,
-#     Slurm = 4
-
-
 meta = MetaData()
 
 tasks = Table('tasks', meta,
