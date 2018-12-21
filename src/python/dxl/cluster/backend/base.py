@@ -1,4 +1,4 @@
-import enum
+from enum import Enum, auto
 
 
 class Backend:
@@ -19,5 +19,10 @@ class Backend:
         raise NotImplementedError
 
 
-class Backends(enum.Enum):
-    Slurm = "Slurm"
+class AutoName(Enum):
+    def _generate_next_value_(name, start, count, last_values):
+        return name
+
+
+class Backends(AutoName):
+    Slurm = auto()

@@ -54,6 +54,7 @@ class TasksResource(Resource):
 
     def post(self):
         tpr = TaskPoster(request=request)
+        return tpr.post()
         # body = request.json
         # if body is None:
         #     body = request.form
@@ -61,33 +62,30 @@ class TasksResource(Resource):
         #     raise TypeError("No body data found.")
 
         # taskBody = {k: v for k, v in body.items() if k not in ["details"]}
-        if len(body["details"]):
-            is_user_task = body["details"]["is_user_task"]
-            taskSlurmBody = {k:v for k,v in body["details"].items() if k not in ["is_user_task"]}
-        else:
-            is_user_task = False
-            taskSlurmBody = {}
+        # if len(body["details"]):
+        #     is_user_task = body["details"]["is_user_task"]
+        #     taskSlurmBody = {k:v for k,v in body["details"].items() if k not in ["is_user_task"]}
+        # else:
+        #     is_user_task = False
+        #     taskSlurmBody = {}
 
-        task = Task(**taskSchema.load(taskBody))
-        result_task = TasksBind.tasks.create(task)
-
-        taskSlurm = TaskSlurm(**taskSlurmSchema.load(taskSlurmBody))
-        result_taskSlurm = TasksBind.tasks.create_taskSlurm(taskSlurm, result_task.id)
-
-        if is_user_task:
-            result_taskSimu = TasksBind.tasks.create_taskSimu(TaskSimu(), result_taskSlurm.id)
-            return taskSimuSchema.dump(result_taskSimu), 200
-
-        return taskSlurmSchema.dump(result_taskSlurm), 200
+        # task = Task(**taskSchema.load(taskBody))
+        # result_task = TasksBind.tasks.create(task)
+        #
+        # taskSlurm = TaskSlurm(**taskSlurmSchema.load(taskSlurmBody))
+        # result_taskSlurm = TasksBind.tasks.create_taskSlurm(taskSlurm, result_task.id)
+        #
+        # if is_user_task:
+        #     result_taskSimu = TasksBind.tasks.create_taskSimu(TaskSimu(), result_taskSlurm.id)
+        #     return taskSimuSchema.dump(result_taskSimu), 200
+        #
+        # return taskSlurmSchema.dump(result_taskSlurm), 200
 
 
 class TaskPoster:
     def __init__(self, request, backend=Backends.Slurm):
         self.backend = backend
         self.request = request
-
-        if self.is_user_task:
-            self.backend
 
     @property
     def body(self):
@@ -99,8 +97,12 @@ class TaskPoster:
         return tmp
 
     @property
-    def task_details(self):
+    def task_body(self):
         return {k: v for k, v in self.body.items() if k not in ["details"]}
+
+    @property
+    def task_details(self):
+        return {k:v for k,v in self.body["details"].items() if k not in ["is_user_task"]}
 
     @property
     def is_user_task(self):
@@ -109,20 +111,19 @@ class TaskPoster:
         except KeyError:
             print("Error! is_user_task field is requested!")
 
+    def post(self):
+        if self.backend is Backends.Slurm:
+            task = Task(**taskSchema.load(self.task_body))
+            result_task = TasksBind.tasks.create(task)
 
-    @property
+            taskSlurm = TaskSlurm(**taskSlurmSchema.load(self.task_details))
+            result_taskSlurm = TasksBind.tasks.create_taskSlurm(taskSlurm, result_task.id)
 
+            if self.is_user_task:
+                result_taskSimu = TasksBind.tasks.create_taskSimu(TaskSimu(), result_taskSlurm.id)
+                return taskSimuSchema.dump(result_taskSimu), 200
 
-
-    def task_type_matching(self):
-        pass
-
-    def _on_independent(self):
-        pass
-
-    def _post_task(self):
-        pass
-
+            return taskSlurmSchema.dump(result_taskSlurm), 200
 
 # class TaskResource(Resource):
 #
