@@ -1,4 +1,7 @@
-class Cluster:
+import enum
+
+
+class Backend:
     def update(self, task: 'Task') -> 'Task':
         """
         Update task statues, thus reading true current statue of Task from backend scheduler system.
@@ -12,5 +15,9 @@ class Cluster:
     def cancel(self, task: 'Task') -> 'Task':
         raise NotImplementedError
 
-    def is_failure(self,task:'Task') -> 'Bool':
+    def is_failure(self, task: 'Task') -> 'Bool':
         raise NotImplementedError
+
+
+class Backends(enum.Enum):
+    Slurm = "Slurm"

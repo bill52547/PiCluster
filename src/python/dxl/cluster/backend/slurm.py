@@ -1,6 +1,6 @@
 import re
 from enum import Enum
-from typing import Dict
+# from typing import Dict
 import rx
 import requests
 
@@ -11,9 +11,9 @@ import json
 from rx import Observable
 # from ..database.model import Worker
 from ..database.api.tasks import TaskState
-from ..interactive.base import Task, TaskInfo
-from ..interactive import web
-from .base import Cluster
+# from ..interactive.base import Task, TaskInfo
+# from ..interactive import web
+# from .base import Cluster
 
 
 # TODO remove useless parts
@@ -44,7 +44,7 @@ class SlurmState(Enum):
 
 def slurm_state2task_state(s: SlurmState):
     return {
-        SlurmState.Running: TaskState.Running ,
+        SlurmState.Running: TaskState.Running,
         SlurmState.Completing: TaskState.Completed,
         SlurmState.Completed: TaskState.Completed,
         SlurmState.Pending: TaskState.Pending,
@@ -77,102 +77,101 @@ def scontrol_state2task_state(s: ScontrolState):
     return scontrol2state_mapping[ScontrolState(s)]
 
 
-class TaskSlurmInfo:
-    def __init__(self,
-                 partition=None,
-                 command=None,
-                 usr=None,
-                 state=None,
-                 run_time=None,
-                 nb_nodes=None,
-                 node_list=None,
-                 id=None):
-
-        self.id = id
-        if isinstance(self.id, str):
-            self.id = int(self.id)
-        self.partition = partition
-        self.command = command
-        self.usr = usr
-        if state is None:
-            self.state = SlurmState('R')
-        elif isinstance(state, SlurmState):
-            self.state = state
-        else:
-            self.state = SlurmState(state)
-        self.run_time = run_time
-        if nb_nodes is None:
-            self.nb_nodes = 0
-        else:
-            self.nb_nodes = int(nb_nodes)
-        self.node_list = node_list
-
-    def __eq__(self, m):
-        return isinstance(m, TaskSlurmInfo) and m.unbox() == self.unbox()
-
-    def unbox(self):
-        return (self.id, self.partition, self.command,
-                self.usr, self.state, self.run_time,
-                self.nb_nodes, self.node_list)
-
-    @classmethod
-    def parse_dict(cls, dct: dict):
-        return TaskSlurmInfo(dct['partition'],
-                             dct['name'],
-                             dct['user'],
-                             dct['status'],
-                             dct['time'],
-                             dct['nodes'],
-                             dct['node_list'],
-                             id=dct['job_id'])
-
-    def to_dict(self) -> Dict[str, str]:
-        return {
-            'job_id': self.id,
-            'partition': self.partition,
-            'name': self.command,
-            'user': self.usr,
-            'status': self.state.value,
-            'time': self.run_time,
-            'nodes': self.nb_nodes,
-            'node_list': self.node_list
-        }
-
-    def __repr__(self):
-        return f'taskslurm(id={self.id})'
-
-
-class TaskSlurm(Task):
-    def __init__(self,
-                 task_id=None,
-                 state=None,
-                 depends=[],
-                 create=None,
-                 submit=None,
-                 finish=None,
-                 details={}):
-        super().__init__(id=details["id"],
-                         state=state,
-                         depends=depends,
-                         create=create,
-                         submit=submit,
-                         finish=finish,
-                         details=details)
-
-        self.task_id = task_id
-
-        if details["worker"] is None:
-            self.worker = Worker.NoAction
-        else:
-            self.worker = details["worker"]
-
-        self.workdir = details["workdir"]
-        self.script = details["script"]
-
-    # @property
-    # def id(self):
-    #     #TODO id is not currect
-    #     return self.task_id
+# class TaskSlurmInfo:
+#     def __init__(self,
+#                  partition=None,
+#                  command=None,
+#                  usr=None,
+#                  state=None,
+#                  run_time=None,
+#                  nb_nodes=None,
+#                  node_list=None,
+#                  id=None):
+#
+#         self.id = id
+#         if isinstance(self.id, str):
+#             self.id = int(self.id)
+#         self.partition = partition
+#         self.command = command
+#         self.usr = usr
+#         if state is None:
+#             self.state = SlurmState('R')
+#         elif isinstance(state, SlurmState):
+#             self.state = state
+#         else:
+#             self.state = SlurmState(state)
+#         self.run_time = run_time
+#         if nb_nodes is None:
+#             self.nb_nodes = 0
+#         else:
+#             self.nb_nodes = int(nb_nodes)
+#         self.node_list = node_list
+#
+#     def __eq__(self, m):
+#         return isinstance(m, TaskSlurmInfo) and m.unbox() == self.unbox()
+#
+#     def unbox(self):
+#         return (self.id, self.partition, self.command,
+#                 self.usr, self.state, self.run_time,
+#                 self.nb_nodes, self.node_list)
+#
+#     @classmethod
+#     def parse_dict(cls, dct: dict):
+#         return TaskSlurmInfo(dct['partition'],
+#                              dct['name'],
+#                              dct['user'],
+#                              dct['status'],
+#                              dct['time'],
+#                              dct['nodes'],
+#                              dct['node_list'],
+#                              id=dct['job_id'])
+#
+#     def to_dict(self) -> Dict[str, str]:
+#         return {
+#             'job_id': self.id,
+#             'partition': self.partition,
+#             'name': self.command,
+#             'user': self.usr,
+#             'status': self.state.value,
+#             'time': self.run_time,
+#             'nodes': self.nb_nodes,
+#             'node_list': self.node_list
+#         }
+#
+#     def __repr__(self):
+#         return f'taskslurm(id={self.id})'
+#
+#
+# class TaskSlurm(Task):
+#     def __init__(self,
+#                  task_id=None,
+#                  state=None,
+#                  depends=[],
+#                  create=None,
+#                  submit=None,
+#                  finish=None,
+#                  details={}):
+#         super().__init__(id=details["id"],
+#                          state=state,
+#                          depends=depends,
+#                          create=create,
+#                          submit=submit,
+#                          finish=finish,
+#                          details=details)
+#
+#         self.task_id = task_id
+#
+#         if details["worker"] is None:
+#             self.worker = Worker.NoAction
+#         else:
+#             self.worker = details["worker"]
+#
+#         self.workdir = details["workdir"]
+#         self.script = details["script"]
+#
+#     # @property
+#     # def id(self):
+#     #     return self.task_id
 
 
 def sid_from_submit(s: str):
@@ -256,40 +255,40 @@ def is_complete(id):
     return is_end(id)
 
 
-def get_slurm_info(id: int) -> TaskSlurmInfo:
+def get_slurm_info(id: int):
     result = squeue().filter(find_id(id)).to_list().to_blocking().first()
     if len(result) == 0:
         return None
     return result[0]
 
 
-class Slurm(Cluster):
-    """
-    Handle a slurm task life cycle.
-    """
-    @classmethod
-    def submit(cls, t: TaskSlurm):
-        id = sbatch(t.workdir, t.script)
-        slurm_info = get_slurm_info(id)
-        new_info = TaskInfo(id=id,
-                            nb_nodes=slurm_info.nb_nodes,
-                            node_list=slurm_info.node_list)
-
-        new_task = t.update_info(new_info.to_dict())
-        nt = new_task.update_state(TaskState.Runing)
-
-        web.Request().update(nt)
-        return nt
-
-    @classmethod
-    def update(cls, t: TaskSlurm):
-        if t.task_id is None:
-            return t
-        else:
-            state = get_state(t.task_id)
-            nt = t.update_state(state)
-            return nt
-
-    @classmethod
-    def cancel(cls, t: TaskSlurm):
-        scancel(t.id)
+# class Slurm(Cluster):
+#     """
+#     Handle a slurm task life cycle.
+#     """
+#     @classmethod
+#     def submit(cls, t: TaskSlurm):
+#         id = sbatch(t.workdir, t.script)
+#         slurm_info = get_slurm_info(id)
+#         new_info = TaskInfo(id=id,
+#                             nb_nodes=slurm_info.nb_nodes,
+#                             node_list=slurm_info.node_list)
+#
+#         new_task = t.update_info(new_info.to_dict())
+#         nt = new_task.update_state(TaskState.Runing)
+#
+#         web.Request().update(nt)
+#         return nt
+#
+#     @classmethod
+#     def update(cls, t: TaskSlurm):
+#         if t.task_id is None:
+#             return t
+#         else:
+#             state = get_state(t.task_id)
+#             nt = t.update_state(state)
+#             return nt
+#
+#     @classmethod
+#     def cancel(cls, t: TaskSlurm):
+#         scancel(t.id)

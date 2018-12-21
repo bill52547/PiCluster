@@ -27,7 +27,8 @@ tasks = Table('tasks', meta,
               Column('create', DateTime(timezone=True)),
               Column('submit', DateTime(timezone=True)),
               Column('finish', DateTime(timezone=True)),
-              Column('depends', postgresql.ARRAY(Integer, dimensions=1)))
+              Column('depends', postgresql.ARRAY(Integer, dimensions=1)),
+              Column('thenext', Integer))
 
 taskSlurm = Table(
     'taskSlurm', meta,
@@ -56,6 +57,7 @@ class Task:
     submit: typing.Optional[datetime.datetime] = None
     finish: typing.Optional[datetime.datetime] = None
     depends: typing.List[int] = ()
+    thenext: typing.Optional[int] = None
 
 
 @attr.s(auto_attribs=True)
@@ -106,6 +108,7 @@ class TasksSchema(ma.Schema):
     submit = ma.fields.DateTime(allow_none=True)
     finish = ma.fields.DateTime(allow_none=True)
     depends = ma.fields.List(ma.fields.Integer())
+    thenext = ma.fields.Integer(allow_none=True)
 
 
 taskSchema = TasksSchema()

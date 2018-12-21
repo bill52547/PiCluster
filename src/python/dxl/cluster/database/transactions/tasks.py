@@ -1,10 +1,7 @@
 from dxl.cluster.database import TaskState
 from dxl.cluster.database.model import Task, TaskSlurm, TaskSimu
 from dxl.cluster.database.db import DataBase
-from functools import singledispatch
-from sqlalchemy import func
 import arrow
-import attr
 
 
 class TaskTransactions:
