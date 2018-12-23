@@ -3,6 +3,7 @@ from flask_restful import Api, Resource, reqparse
 from ...database import Task, TaskTransactions
 from ...database.model import TaskSlurm, TaskSimu, taskSchema, taskSlurmSchema, taskSimuSchema
 from ...backend import Backends
+from ...interactive.web import Request
 
 API_VERSION = 1
 TASK_API_URL = f"/api/v{API_VERSION}/tasks"
@@ -62,6 +63,10 @@ class TaskPoster:
             return self.body["details"]["is_user_task"]
         except KeyError:
             print("Error! is_user_task field is requested!")
+
+    def _on_independent(self, depends):
+        for d in depends:
+            Request.task0
 
     def post(self):
         if self.backend is Backends.Slurm:

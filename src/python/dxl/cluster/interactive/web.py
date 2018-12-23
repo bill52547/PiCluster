@@ -117,7 +117,7 @@ class Request:
         if len(task_ids) != 0:
             querystring = {"ids": str(set(task_ids))}
             response = requests.get(cls.url_rpc_call("read_from_list"), params=querystring).text
-            return rx.Observable.from_(json.loads(response)).map(lambda t: Task(**taskSchema.load(t)))
+            return rx.Observable.from_(json.loads(response)).map(lambda t: Task(**taskSchema.load(t))) #yo
         else:
             return ""
 
@@ -158,9 +158,9 @@ class Request:
         querystring = {"id": f"eq.{task_id}"}
         requests.patch(cls._url_postgrest_tasks, params=querystring, data=patch)
 
-    @classmethod
-    @connection_error_handle
-    def delete(cls, id):
-        r = requests.delete(url(id))
-        if r.status_code == 404:
-            raise TaskNotFoundError(id)
+    # @classmethod
+    # @connection_error_handle
+    # def delete(cls, id):
+    #     r = requests.delete(url(id))
+    #     if r.status_code == 404:
+    #         raise TaskNotFoundError(id)

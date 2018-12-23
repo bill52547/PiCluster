@@ -21,17 +21,19 @@ class TaskState(enum.Enum):
 
 meta = MetaData()
 
-tasks = Table('tasks', meta,
-              Column('id', Integer, primary_key=True),
-              Column('state', Enum(TaskState, name='state_enum', metadata=meta)),
-              Column('create', DateTime(timezone=True)),
-              Column('submit', DateTime(timezone=True)),
-              Column('finish', DateTime(timezone=True)),
-              Column('depends', postgresql.ARRAY(Integer, dimensions=1)),
-              Column('thenext', Integer))
+tasks = Table(
+    'tasks', meta,
+    Column('id', Integer, primary_key=True),
+    Column('state', Enum(TaskState, name='state_enum', metadata=meta)),
+    Column('create', DateTime(timezone=True)),
+    Column('submit', DateTime(timezone=True)),
+    Column('finish', DateTime(timezone=True)),
+    Column('depends', postgresql.ARRAY(Integer, dimensions=1)),
+    Column('thenext', Integer)
+)
 
-taskSlurm = Table(
-    'taskSlurm', meta,
+slurmTask = Table(
+    'slurmTask', meta,
     Column('id', Integer, primary_key=True),
     Column('task_id', Integer, ForeignKey("tasks.id")),
     Column('slurm_id', Integer),
@@ -41,10 +43,16 @@ taskSlurm = Table(
     Column('script', String)
 )
 
-taskSimu = Table(
-    'taskSimu', meta,
+masterTask = Table(
+    'masterTask', meta,
     Column('id', Integer, primary_key=True),
-    Column('taskSlurm_id', Integer, ForeignKey("taskSlurm.id"))
+    Column('slurmTask_id', Integer, ForeignKey("slurmTask.id"))
+)
+
+backends = Table(
+    'backends', meta,
+    Column('id', Integer, primary_key=True),
+    Column('backend', String)
 )
 
 
@@ -78,8 +86,8 @@ class TaskSimu:
 
 
 mapper(Task, tasks)
-mapper(TaskSlurm, taskSlurm)
-mapper(TaskSimu, taskSimu)
+mapper(TaskSlurm, slurmTask)
+mapper(TaskSimu, masterTask)
 
 
 class TaskStateField(ma.fields.Field):

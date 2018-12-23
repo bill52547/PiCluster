@@ -8,6 +8,7 @@ class Backend:
         Idemopotent. Pure for dxcluster system, not global pure.
         """
         raise NotImplementedError
+    def loading(self, task: Task):
 
     def submit(self, task: 'Task') -> 'Task':
         raise NotImplementedError
