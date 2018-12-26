@@ -1,22 +1,18 @@
-def api_root(version):
-    return f"/api/v{version}"
+from functools import partial
 
 
-def api_path(name, suffix=None, version=None, base=None):
-    if base is None:
-        base = api_root(version)
-    else:
-        if base.startswith('/'):
-            base = base[1:]
-        base = f"{api_root(version)}/{base}"
-
-    if base.endswith('/'):
-        base = base[:-1]
-    if suffix is None:
-        return f"{base}/{name}"
-    else:
-        return f"{base}/{name}/{suffix}"
+def api_root(ip, port):
+    return f"http://{ip}:{port}/"
 
 
-def req_url(name, ip=None, port=None, suffix=None, version=None, base=None):
-    return f'http://{ip}:{port}{api_path(name, suffix, version, base)}'
+def _req_url(ip, port, name):
+    return api_root(ip, port)+str(name)
+
+
+req_url = partial(_req_url, "202.120.1.61", "3000")
+
+# _url_postgrest = "http://202.120.1.61:3000"
+# _url_postgrest_tasks = "http://202.120.1.61:3000/tasks"
+# _url_postgrest_taskSlurm = "http://202.120.1.61:3000/taskSlurm"
+# _url_postgrest_taskSimu = "http://202.120.1.61:3000/taskSimu"
+

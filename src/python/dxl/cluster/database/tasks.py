@@ -1,9 +1,9 @@
 from flask import request
 from flask_restful import Api, Resource, reqparse
-from ...database import Task, TaskTransactions
-from ...database.model import TaskSlurm, TaskSimu, taskSchema, taskSlurmSchema, taskSimuSchema
-from ...backend import Backends
-from ...interactive.web import Request
+from ..database import Task, TaskTransactions
+from ..database.model import SlurmTask, Mastertask, taskSchema, slurmTaskSchema, masterTaskchema
+from ..backend import Backends
+from ..interactive.web import Request
 
 API_VERSION = 1
 TASK_API_URL = f"/api/v{API_VERSION}/tasks"
@@ -55,7 +55,7 @@ class TaskPoster:
 
     @property
     def task_details(self):
-        return {k:v for k,v in self.body["details"].items() if k not in ["is_user_task"]}
+        return {k: v for k, v in self.body["details"].items() if k not in ["is_user_task"]}
 
     @property
     def is_user_task(self):
@@ -66,23 +66,23 @@ class TaskPoster:
 
     def _on_independent(self, depends):
         for d in depends:
-            Request.task0
+            pass
+            # Request.task
 
     def post(self):
         if self.backend is Backends.Slurm:
             task = Task(**taskSchema.load(self.task_body))
             result_task = TasksBind.tasks.create(task)
 
-            taskSlurm = TaskSlurm(**taskSlurmSchema.load(self.task_details))
-            result_taskSlurm = TasksBind.tasks.create_taskSlurm(taskSlurm, result_task.id)
+            slurmTask = SlurmTask(**slurmTaskSchema.load(self.task_details))
+            result_slurmTask = TasksBind.tasks.create_taskSimu(slurmTask, result_task.id)
 
             if self.is_user_task:
-                result_taskSimu = TasksBind.tasks.create_taskSimu(TaskSimu(), result_taskSlurm.id)
-                return taskSimuSchema.dump(result_taskSimu), 200
+                result_taskSimu = TasksBind.tasks.create_taskSimu(Mastertask(), result_slurmTask.id)
+                return masterTaskchema.dump(result_taskSimu), 200
 
-            return taskSlurmSchema.dump(result_taskSlurm), 200
+            return slurmTaskSchema.dump(result_slurmTask), 200
 
 
-def add_resource(api, tasks):
-    TasksBind.set(tasks)
-    api.add_resource(TasksResource, TASK_API_URL) # /api/v1/tasks
+def add_resource(api):
+    api.add_resource(TasksResource, TASK_API_URL)  # /api/v1/tasks

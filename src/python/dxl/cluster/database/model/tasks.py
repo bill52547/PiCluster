@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Enum, Table, MetaData, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Enum, Table, MetaData, ForeignKey, Boolean
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import mapper
 import marshmallow as ma
@@ -6,7 +6,7 @@ import enum
 import attr
 import datetime
 import typing
-from .db import DataBase
+from ..db import DataBase
 
 
 class TaskState(enum.Enum):
@@ -29,6 +29,7 @@ tasks = Table(
     Column('submit', DateTime(timezone=True)),
     Column('finish', DateTime(timezone=True)),
     Column('depends', postgresql.ARRAY(Integer, dimensions=1)),
+    Column('backend', String),
     Column('thenext', Integer)
 )
 
@@ -51,8 +52,90 @@ masterTask = Table(
 
 backends = Table(
     'backends', meta,
+    Column('backend', String, primary_key=True)
+)
+# backends.insert().value(backend='slurm')
+
+
+fileCollections = Table(
+    'fileCollections', meta,
     Column('id', Integer, primary_key=True),
-    Column('backend', String)
+    Column('mac', String, ForeignKey("mac.url")),
+    Column('post_script', Boolean),
+    Column('run_script', Boolean),
+    Column('material_db', Boolean),
+    Column('verbose_mac', Boolean),
+    Column('phantom_bin', Boolean),
+    Column('header_phantom', Boolean),
+    Column('activity_range', Boolean),
+    Column('range_material', Boolean),
+    Column('err', Boolean),
+    Column('out', Boolean),
+    Column('root', Boolean)
+)
+
+# ioCollections = Table(
+#     'ioCollections', meta,
+#     Column()
+# )
+
+
+macs = Table(
+    'mac', meta,
+    Column('id', Integer, primary_key=True),
+    Column('comment', String),
+    Column('url', String)
+)
+
+
+procedures = Table(
+    'procedures', meta,
+    Column('procedure', String, primary_key=True)
+)
+
+# procedureCollections = Table(
+#     'procedureCollections', meta,
+#     Column('id', Integer, primary_key=True),
+#     Column('subdir_init', Boolean),
+#     Column('bcast', Boolean),
+#     Column('run_pygate_submit', Boolean),
+#     Column('run_slurm', Boolean),
+#     Column('run_gate', Boolean),
+#     Column('run_root_to_listmode_bin', Boolean),
+#     Column('run_listmode_bin_to_listmode_h5', Boolean),
+#     Column('run_stir', Boolean),
+#     Column('run_listmode_to_lor', Boolean),
+#     Column('run_lor_to_sinogram', Boolean),
+#     Column('run_sinogram_to_lor', Boolean),
+#     Column('run_lor_recon', Boolean),
+#     Column('run_srf_recon', Boolean)
+# )
+
+
+taskOPs = Table(
+    'taskOPs', meta,
+    Column('taskOP', String, primary_key=True),
+    Column('backend', String, ForeignKey("backends.backend")),
+    Column('procedure', Integer, ForeignKey("procedures.procedure")),
+    Column('inputs', Integer, postgresql.ARRAY(Integer, dimensions=1)),
+    Column('outputs', Integer, ForeignKey("fileCollections.id")),
+    Column('on_complete', Integer, postgresql.ARRAY(Integer, dimensions=1))
+)
+
+
+macs = Table(
+    'macs', meta,
+    Column('mac', String, primary_key=True),
+    Column('comments', String),
+    Column('url', String)
+)
+
+
+phantomBins = Table(
+    'phantomBins', meta,
+    Column('phantomBin', String, primary_key=True),
+    Column('comments', String),
+    Column('url', String )
 )
 
 
@@ -69,7 +152,7 @@ class Task:
 
 
 @attr.s(auto_attribs=True)
-class TaskSlurm:
+class SlurmTask:
     id: typing.Optional[int] = None
     task_id: typing.Optional[int] = None
     slurm_id: typing.Optional[int] = None
@@ -80,14 +163,14 @@ class TaskSlurm:
 
 
 @attr.s(auto_attribs=True)
-class TaskSimu:
+class Mastertask:
     id: typing.Optional[int] = None
     taskSlurm_id: typing.Optional[int] = None
 
 
 mapper(Task, tasks)
-mapper(TaskSlurm, slurmTask)
-mapper(TaskSimu, masterTask)
+mapper(SlurmTask, slurmTask)
+mapper(Mastertask, masterTask)
 
 
 class TaskStateField(ma.fields.Field):
@@ -122,7 +205,7 @@ class TasksSchema(ma.Schema):
 taskSchema = TasksSchema()
 
 
-class TaskSlurmSchema(ma.Schema):
+class SlurmTaskSchema(ma.Schema):
     id = ma.fields.Integer(allow_none=True)
     task_id = ma.fields.Integer(allow_none=True)
     slurm_id = ma.fields.Integer(allow_none=True)
@@ -132,15 +215,15 @@ class TaskSlurmSchema(ma.Schema):
     script = ma.fields.String(allow_none=True)
 
 
-taskSlurmSchema = TaskSlurmSchema()
+slurmTaskSchema = SlurmTaskSchema()
 
 
-class TaskSimuSchema(ma.Schema):
+class MasterTaskSchema(ma.Schema):
     id = ma.fields.Integer(allow_none=True)
     taskSlurm_id = ma.fields.Integer(allow_none=True)
 
 
-taskSimuSchema = TaskSimuSchema()
+masterTaskschema = MasterTaskSchema()
 
 
 def create_all(database: DataBase):

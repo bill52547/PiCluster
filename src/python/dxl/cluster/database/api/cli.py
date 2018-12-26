@@ -19,8 +19,8 @@ def start():
     app = Flask(__name__)
     api = Api(app)
     # TODO move config stuff to a config file
-    db = DataBase(passwd='psql', ip='202.120.1.61', port=30002)
-    add_resource(api, TaskTransactions(db))
+    # db = DataBase(passwd='psql', ip='202.120.1.61', port=30002)
+    add_resource(api)
     app.run(host="0.0.0.0", port=23300, debug=True)
 
 

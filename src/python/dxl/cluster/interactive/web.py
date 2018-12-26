@@ -7,9 +7,14 @@ import rx
 
 from ..web.urls import req_url
 from ..config import config as c
-from ..database.model import TaskState, Task, TaskSimu
-from ..database.model import taskSchema, taskSlurmSchema, TaskSlurm, taskSimuSchema
+from ..database.model import TaskState, Task, Mastertask
+from ..database.model import taskSchema, slurmTaskSchema, SlurmTask, masterTaskschema
 from .exceptions import TaskDatabaseConnectionError, TaskNotFoundError
+
+
+from ..database.transactions import serialization, deserialization
+from ..interactive.web import req_url
+
 
 
 def now(local=False):
@@ -30,14 +35,42 @@ def connection_error_handle(func):
     return wrapper
 
 
+from functools import singledispatch
+
+
+@singledispatch
+def insert(t):
+    raise NotImplemented
+
+
+@insert.register(Task)
+def _(task: Task):
+    task_json = serialization(task)
+    r = requests.post(req_url('tasks'), json=task_json).json()
+    task.id = r['id']
+    return task
+
+
+@insert.register(SlurmTask)
+def _(task: SlurmTask):
+    task_json = serialization(task)
+    r = requests.post(req_url('slurmTask'), json=task_json).json()
+    task.id = r['id']
+    return task
+
+
+@insert.register(Mastertask)
+def _(task: Mastertask):
+    task_json = serialization(task)
+    r = requests.post(req_url('mastertask'), json=task_json).json()
+    task.id = r['id']
+    return task
+
+
+
 class Request:
     # TODO need refactor
-    _url_task = req_url(name=c['name'], ip=c['host'], port=c["port"], version=1)
-    _url_taskSlurm = req_url(name='taskslrum', ip=c['host'], port=c["port"], version=1)
-    _url_postgrest = "http://202.120.1.61:3000"
-    _url_postgrest_tasks = "http://202.120.1.61:3000/tasks"
-    _url_postgrest_taskSlurm = "http://202.120.1.61:3000/taskSlurm"
-    _url_postgrest_taskSimu = "http://202.120.1.61:3000/taskSimu"
+
 
     @staticmethod
     def url_rpc_call(func):
@@ -79,10 +112,10 @@ class Request:
     def read_taskSimu(cls, id=None):
         if id is None:
             response = json.loads(requests.get(cls._url_postgrest_taskSimu).text)
-            return rx.Observable.from_(response).map(lambda t: TaskSimu(**taskSimuSchema.load(t)))
+            return rx.Observable.from_(response).map(lambda t: Mastertask(**masterTaskchema.load(t)))
 
         response = json.loads(requests.get(cls._url_postgrest_taskSimu + f"?and=(id.eq.{id})").text)
-        return rx.Observable.from_(response).map(lambda t: TaskSimu(**taskSimuSchema.load(t)))
+        return rx.Observable.from_(response).map(lambda t: Mastertask(**masterTaskchema.load(t)))
 
     @classmethod
     @connection_error_handle
@@ -128,7 +161,7 @@ class Request:
             querystring = {"ids": str(set(task_ids))}
             response = requests.get(cls.url_rpc_call("task_to_taskslurm"), params=querystring).text
             return (rx.Observable.from_(json.loads(response))
-                    .map(lambda t: TaskSlurm(**taskSlurmSchema.load(t))))
+                    .map(lambda t: SlurmTask(**slurmTaskSchema.load(t))))
         else:
             return ""
 
