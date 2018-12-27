@@ -1,32 +1,35 @@
 from flask import request
 from flask_restful import Api, Resource, reqparse
-from ..database import Task, TaskTransactions
-from ..database.model import SlurmTask, Mastertask, taskSchema, slurmTaskSchema, masterTaskchema
+from ..database import Task #, TaskTransactions
+from ..database.model import SlurmTask, Mastertask, taskSchema, slurmTaskSchema, masterTaskschema
 from ..backend import Backends
-from ..interactive.web import Request
-
-API_VERSION = 1
-TASK_API_URL = f"/api/v{API_VERSION}/tasks"
-TASK_SLURM_API_URL = f"/api/v{API_VERSION}/taskslurm"
-JOIN_API_URL = f"/api/v{API_VERSION}/jointask"
+from ..interactive import post
+from ..database.transactions import deserialization, serialization
+from ..interactive.web import post
 
 
-class TasksBind:
-    """
-    Bind to transactions to given TaskTransactions, thus fixed database.
-    """
-    tasks = None
-    @classmethod
-    def set(cls, tasks: TaskTransactions):
-        if cls.tasks is not None:
-            if not tasks is cls.tasks:
-                raise ValueError("Tasks already binded to another TaskTransactions, plz clear it before set it to another.")
-            return
-        cls.tasks = tasks
+# API_VERSION = 1
+# TASK_API_URL = f"/api/v{API_VERSION}/tasks"
+# TASK_SLURM_API_URL = f"/api/v{API_VERSION}/taskslurm"
+# JOIN_API_URL = f"/api/v{API_VERSION}/jointask"
 
-    @classmethod
-    def clear(cls):
-        cls.tasks = None
+
+# class TasksBind:
+#     """
+#     Bind to transactions to given TaskTransactions, thus fixed database.
+#     """
+#     tasks = None
+#     @classmethod
+#     def set(cls, tasks: TaskTransactions):
+#         if cls.tasks is not None:
+#             if not tasks is cls.tasks:
+#                 raise ValueError("Tasks already binded to another TaskTransactions, plz clear it before set it to another.")
+#             return
+#         cls.tasks = tasks
+#
+#     @classmethod
+#     def clear(cls):
+#         cls.tasks = None
 
 
 class TasksResource(Resource):
@@ -36,7 +39,7 @@ class TasksResource(Resource):
 
 
 class TaskPoster:
-    def __init__(self, request, backend=Backends.Slurm):
+    def __init__(self, request, backend=Backends.slurm):
         self.backend = backend
         self.request = request
 
@@ -70,18 +73,31 @@ class TaskPoster:
             # Request.task
 
     def post(self):
-        if self.backend is Backends.Slurm:
-            task = Task(**taskSchema.load(self.task_body))
-            result_task = TasksBind.tasks.create(task)
+        if self.backend is Backends.slurm:
+            task = deserialization(self.task_body)
+            task = post(task)
 
-            slurmTask = SlurmTask(**slurmTaskSchema.load(self.task_details))
-            result_slurmTask = TasksBind.tasks.create_taskSimu(slurmTask, result_task.id)
+            slurmTask = deserialization(self.task_details)
+            slurmTask.task_id = task.id
+            slurmTask = post(slurmTask)
 
             if self.is_user_task:
-                result_taskSimu = TasksBind.tasks.create_taskSimu(Mastertask(), result_slurmTask.id)
-                return masterTaskchema.dump(result_taskSimu), 200
+                masterTask = post(Mastertask(backend=Backends.slurm.value, backend_task_id=slurmTask.id))
+                return serialization(masterTask), 200
 
-            return slurmTaskSchema.dump(result_slurmTask), 200
+            return serialization(slurmTask), 200
+
+            # task = Task(**taskSchema.load(self.task_body))
+            # result_task = TasksBind.tasks.create(task)
+            #
+            # slurmTask = SlurmTask(**slurmTaskSchema.load(self.task_details))
+            # result_slurmTask = TasksBind.tasks.create_taskSimu(slurmTask, result_task.id)
+            #
+            # if self.is_user_task:
+            #     result_taskSimu = TasksBind.tasks.create_taskSimu(Mastertask(), result_slurmTask.id)
+            #     return masterTaskschema.dump(result_taskSimu), 200
+            #
+            # return slurmTaskSchema.dump(result_slurmTask), 200
 
 
 def add_resource(api):

@@ -123,8 +123,8 @@ class SlurmTask:
 
 @attr.s(auto_attribs=True)
 class Mastertask:
-    id: typing.Optional[int] = None
-    taskSlurm_id: typing.Optional[int] = None
+    backend: typing.Optional[str] = None
+    backend_task_id: typing.Optional[str] = None
 
 
 mapper(Task, tasks)

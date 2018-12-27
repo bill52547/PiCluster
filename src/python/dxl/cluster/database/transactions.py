@@ -25,7 +25,9 @@ def _(t):
 def deserialization(t):
     if t.keys() == taskSchema.declared_fields.keys():
         return Task(**taskSchema.load(t))
+
     elif t.keys() == slurmTaskSchema.declared_fields.keys():
         return SlurmTask(**slurmTaskSchema.load(t))
+
     elif t.keys() == masterTaskschema.declared_fields.keys():
         return Mastertask(**masterTaskschema.load(t))

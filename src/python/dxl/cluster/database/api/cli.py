@@ -2,8 +2,8 @@ from flask_restful import Api
 from flask import Flask
 import click
 
-from dxl.cluster.database.api.tasks import add_resource
-from dxl.cluster.database import TaskTransactions, DataBase
+from dxl.cluster.database.tasks import add_resource
+from dxl.cluster.database import DataBase
 from dxl.core.debug import enter_debug
 
 

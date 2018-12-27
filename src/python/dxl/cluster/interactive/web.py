@@ -5,7 +5,7 @@ import requests
 import json
 import rx
 
-from ..web.urls import req_url
+from ..web.urls import task_req_url
 from ..config import config as c
 from ..database.model import TaskState, Task, Mastertask
 from ..database.model import taskSchema, slurmTaskSchema, SlurmTask, masterTaskschema
@@ -13,8 +13,8 @@ from .exceptions import TaskDatabaseConnectionError, TaskNotFoundError
 
 
 from ..database.transactions import serialization, deserialization
-from ..interactive.web import req_url
-
+from ..interactive.web import task_req_url
+from functools import singledispatch
 
 
 def now(local=False):
@@ -35,34 +35,31 @@ def connection_error_handle(func):
     return wrapper
 
 
-from functools import singledispatch
-
-
 @singledispatch
-def insert(t):
+def post(task):
     raise NotImplemented
 
 
-@insert.register(Task)
+@post.register(Task)
 def _(task: Task):
     task_json = serialization(task)
-    r = requests.post(req_url('tasks'), json=task_json).json()
+    r = requests.post(task_req_url('tasks'), json=task_json).json()
     task.id = r['id']
     return task
 
 
-@insert.register(SlurmTask)
+@post.register(SlurmTask)
 def _(task: SlurmTask):
     task_json = serialization(task)
-    r = requests.post(req_url('slurmTask'), json=task_json).json()
+    r = requests.post(task_req_url('slurmTask'), json=task_json).json()
     task.id = r['id']
     return task
 
 
-@insert.register(Mastertask)
+@post.register(Mastertask)
 def _(task: Mastertask):
     task_json = serialization(task)
-    r = requests.post(req_url('mastertask'), json=task_json).json()
+    r = requests.post(task_req_url('mastertask'), json=task_json).json()
     task.id = r['id']
     return task
 
