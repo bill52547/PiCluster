@@ -44,7 +44,7 @@ def sbatch_url(args, filename, workdir):
 #     Running = 'RUNNING'
 #     Suspended = 'SUSPENDED'
 #     Complete = 'COMPLETED'
-#     Failed = 'FAILED'
+#     Failed = 'FAILED'。
 #     Canceled = 'CANCELLED'
 #     Timeout = 'TIMEOUT'
 #     NodeFailed = 'NODE_FAILED'
@@ -85,7 +85,6 @@ def sbatch(workdir: Directory, filename):
     :param args: Script file name "run.sh" by default.
     :return:
     """
-    # TODO args and filename are set the same. because all developers forget why they were set, too bad, so sad :(
     args=filename
     url_ = sbatch_url(args, filename, workdir)
     result = requests.post(sbatch_url(args, filename, workdir)).json()
