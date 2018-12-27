@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Enum, Table, MetaData, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Enum, Table, MetaData, ForeignKey, PrimaryKeyConstraint
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import mapper
 import marshmallow as ma
@@ -46,8 +46,9 @@ slurmTask = Table(
 
 masterTask = Table(
     'masterTask', meta,
-    Column('id', Integer, primary_key=True),
-    Column('slurmTask_id', Integer, ForeignKey("slurmTask.id"))
+    Column('backend', String, ForeignKey("backends.backend")),
+    Column('backend_task_id', Integer, ForeignKey("slurmTask.id")),
+    PrimaryKeyConstraint('backend', 'backend_task_id', name='masterTask_pk')
 )
 
 backends = Table(
@@ -150,7 +151,7 @@ class TaskStateField(ma.fields.Field):
 
 
 class TasksSchema(ma.Schema):
-    id = ma.fields.Integer(allow_none=True)
+    id = ma.fields.Integer(allow_none=False)
     # scheduler = ma.fields.Url(allow_none=True)
     state = TaskStateField(attribute="state")
     create = ma.fields.DateTime(allow_none=True)
@@ -164,8 +165,8 @@ taskSchema = TasksSchema()
 
 
 class SlurmTaskSchema(ma.Schema):
-    id = ma.fields.Integer(allow_none=True)
-    task_id = ma.fields.Integer(allow_none=True)
+    id = ma.fields.Integer(allow_none=False)
+    task_id = ma.fields.Integer(allow_none=False)
     slurm_id = ma.fields.Integer(allow_none=True)
     slurm_state = ma.fields.String(allow_none=True)
     worker = ma.fields.String(allow_none=True)
@@ -177,8 +178,8 @@ slurmTaskSchema = SlurmTaskSchema()
 
 
 class MasterTaskSchema(ma.Schema):
-    id = ma.fields.Integer(allow_none=True)
-    taskSlurm_id = ma.fields.Integer(allow_none=True)
+    backend = ma.fields.Integer(allow_none=False)
+    backend_task_id = ma.fields.Integer(allow_none=False)
 
 
 masterTaskschema = MasterTaskSchema()

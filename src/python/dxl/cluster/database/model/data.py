@@ -1,7 +1,7 @@
 from .tasks import backends, ioCollections
 
 
-backends.insert().value(backend='slurm')
+# backends.insert().value(backend='slurm')
 
 # fileCollections = Table(
 
@@ -41,12 +41,21 @@ backends.insert().value(backend='slurm')
 
 
 def insert_all(db):
-    conn = db.engine.connect()
+    conn = db.get_or_create_engine().connect()
 
     for item in ['slurm', 'bare']:
-        conn.execute(backends.insert().value(backend=item))
+        conn.execute(backends.insert().values(backend=item))
 
-    for item in ['post_script', 'run_script', 'material_db', 'verbose_mac', 'header_phantom']:
-        conn.execute(ioCollections.insert().value())
+    io_files = [
+        ("GateMaterials.db", "gate material database", "/mnt/gluster/qinglong/macset/mac_sub1/GateMaterials.db"),
+        ("Materials.xml", "materials", "/mnt/gluster/qinglong/macset/mac_sub1/Materials.xml"),
+        ("pygate.yml", "configuration for pygate", "/mnt/gluster/qinglong/macset/mac_sub1/pygate.yml"),
+        ("run.sh", "sub tasks runner", "/mnt/gluster/qinglong/macset/mac_sub1/run.sh"),
+        ("Verbose.mac", "Verbose", "/mnt/gluster/qinglong/macset/mac_sub1/Verbose.mac"),
+        ("post.sh", "merge tasks runner", "/mnt/gluster/qinglong/macset/mac_sub1/post.sh"),
+        ("Hits2CSV.C", "Hits2CSV", "/mnt/gluster/qinglong/macset/mac_sub1/Hits2CSV.C"),
+        ("Surfaces.xml", "Surfaces", "/mnt/gluster/qinglong/macset/mac_sub1/Surfaces.xml")
+    ]
 
-
+    for row in io_files:
+        conn.execute(ioCollections.insert().values(file_name=row[0], comments=row[1], url=row[2]))
