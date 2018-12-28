@@ -47,8 +47,8 @@ slurmTask = Table(
 masterTask = Table(
     'masterTask', meta,
     Column('backend', String, ForeignKey("backends.backend")),
-    Column('backend_task_id', Integer, ForeignKey("slurmTask.id")),
-    PrimaryKeyConstraint('backend', 'backend_task_id', name='masterTask_pk')
+    Column('id', Integer, ForeignKey("slurmTask.id")),
+    PrimaryKeyConstraint('backend', 'id', name='masterTask_pk')
 )
 
 backends = Table(
@@ -124,7 +124,7 @@ class SlurmTask:
 @attr.s(auto_attribs=True)
 class Mastertask:
     backend: typing.Optional[str] = None
-    backend_task_id: typing.Optional[str] = None
+    id: typing.Optional[str] = None
 
 
 mapper(Task, tasks)
@@ -178,8 +178,8 @@ slurmTaskSchema = SlurmTaskSchema()
 
 
 class MasterTaskSchema(ma.Schema):
-    backend = ma.fields.Integer(allow_none=False)
-    backend_task_id = ma.fields.Integer(allow_none=False)
+    backend = ma.fields.String(allow_none=False)
+    id = ma.fields.Integer(allow_none=False)
 
 
 masterTaskschema = MasterTaskSchema()

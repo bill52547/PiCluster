@@ -4,6 +4,7 @@ import click
 
 from dxl.cluster.database.tasks import add_resource
 from dxl.cluster.database import DataBase
+from dxl.cluster.interactive import TaskTransactions
 from dxl.core.debug import enter_debug
 
 
@@ -19,8 +20,8 @@ def start():
     app = Flask(__name__)
     api = Api(app)
     # TODO move config stuff to a config file
-    # db = DataBase(passwd='psql', ip='202.120.1.61', port=30002)
-    add_resource(api)
+    db = DataBase(passwd='psql', ip='202.120.1.61', port=30002)
+    add_resource(api, TaskTransactions(db))
     app.run(host="0.0.0.0", port=23300, debug=True)
 
 
