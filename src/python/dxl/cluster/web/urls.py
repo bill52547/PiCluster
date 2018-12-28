@@ -17,12 +17,3 @@ def req_slurm(*arg, **kwargs):
     for k, v in kwargs.items():
         url += f"{k}={v}"
     return url
-
-
-
-
-# _url_postgrest = "http://202.120.1.61:3000"
-# _url_postgrest_tasks = "http://202.120.1.61:3000/tasks"
-# _url_postgrest_taskSlurm = "http://202.120.1.61:3000/taskSlurm"
-# _url_postgrest_taskSimu = "http://202.120.1.61:3000/taskSimu"
-

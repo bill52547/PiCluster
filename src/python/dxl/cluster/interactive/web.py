@@ -2,19 +2,19 @@ from functools import wraps
 from typing import List
 import datetime
 import requests
+import arrow
 import json
 import rx
 
-from ..web.urls import task_req_url
-from ..config import config as c
+from ..database.db import DataBase
 from ..database.model import TaskState, Task, Mastertask
 from ..database.model import taskSchema, slurmTaskSchema, SlurmTask, masterTaskschema
-from .exceptions import TaskDatabaseConnectionError, TaskNotFoundError
+# from .exceptions import TaskDatabaseConnectionError
 
 
 from ..database.transactions import serialization, deserialization
-from ..interactive.web import task_req_url
-from functools import singledispatch
+from ..web.urls import task_req_url
+from functools import singledispatch, update_wrapper
 
 
 def now(local=False):
@@ -30,38 +30,76 @@ def connection_error_handle(func):
         try:
             return func(*args, **kwargs)
         except requests.ConnectionError as e:
-            raise TaskDatabaseConnectionError(
-                "Task database server connection failed. Details:\n{e}".format(e=e))
+            raise Exception("Task database server connection failed. Details:\n{e}".format(e=e))
     return wrapper
 
 
-@singledispatch
-def post(task):
-    raise NotImplemented
+def methodispatch(func):
+    dispatcher = singledispatch(func)
+    def wrapper(*args, **kw):
+        return dispatcher.dispatch(args[1].__class__)(*args, **kw)
+    wrapper.register = dispatcher.register
+    update_wrapper(wrapper, func)
+    return wrapper
 
 
-@post.register(Task)
-def _(task: Task):
-    task_json = serialization(task)
-    r = requests.post(task_req_url('tasks'), json=task_json).json()
-    task.id = r['id']
-    return task
+class TaskTransactions:
+    def __init__(self, db: DataBase):
+        self.db = db
+
+    @methodispatch
+    def post(self, t):
+        return self.post(t)
+
+    @methodispatch
+    def read(self, t):
+        return self.read(t)
 
 
-@post.register(SlurmTask)
-def _(task: SlurmTask):
-    task_json = serialization(task)
-    r = requests.post(task_req_url('slurmTask'), json=task_json).json()
-    task.id = r['id']
-    return task
+@TaskTransactions.post.register(Task)
+def _(self, t: Task):
+    with self.db.session() as sess:
+        sess.add(t)
+        t.state = TaskState.Created
+        t.create = arrow.utcnow().datetime
+        sess.commit()
+        return self.read(t)
 
 
-@post.register(Mastertask)
-def _(task: Mastertask):
-    task_json = serialization(task)
-    r = requests.post(task_req_url('mastertask'), json=task_json).json()
-    task.id = r['id']
-    return task
+@TaskTransactions.post.register(SlurmTask)
+def _(self, t: SlurmTask, task_id: int):
+    with self.db.session() as sess:
+        sess.add(t)
+        t.task_id = task_id
+        sess.commit()
+        return self.read(t)
+
+
+@TaskTransactions.post.register(Mastertask)
+def _(self, t: Mastertask, task_id: int):
+    with self.db.session() as sess:
+        sess.add(t)
+        t.task_id = task_id
+        sess.commit()
+        return self.read(t)
+
+
+@TaskTransactions.read.register(Task)
+def _(self, t: Task):
+    with self.db.session() as sess:
+        return sess.query(Task).get(t.id)
+
+
+@TaskTransactions.read.register(SlurmTask)
+def _(self, t: SlurmTask):
+    with self.db.session() as sess:
+        return sess.query(SlurmTask).get(t.id)
+
+
+@TaskTransactions.read.register(Mastertask)
+def _(self, t: Mastertask):
+    with self.db.session() as sess:
+        return sess.query(Mastertask).get(t.id)
 
 
 
@@ -73,13 +111,13 @@ class Request:
     def url_rpc_call(func):
         return f"http://202.120.1.61:3000/rpc/{func}"
 
-    @classmethod
-    @connection_error_handle
-    def create(cls, task):
-        task_json = task.to_json()
-        r = requests.post(cls._url_task, json=task_json).json()
-        task.id = r['id']
-        return task
+    # @classmethod
+    # @connection_error_handle
+    # def create(cls, task):
+    #     task_json = task.to_json()
+    #     r = requests.post(cls._url_task, json=task_json).json()
+    #     task.id = r['id']
+    #     return task
 
     @classmethod
     @connection_error_handle
