@@ -4,12 +4,30 @@ from ..database.model import Mastertask
 from ..backend import Backends
 from ..database.transactions import deserialization, serialization
 from ..interactive.transaction import TaskTransactions
+from rx.subjects import Subject
+from ..dispatcher import methodispatch
 
 
 API_VERSION = 1
 TASK_API_URL = f"/api/v{API_VERSION}/tasks"
 # TASK_SLURM_API_URL = f"/api/v{API_VERSION}/taskslurm"
 # JOIN_API_URL = f"/api/v{API_VERSION}/jointask"
+
+
+def post_stream_maker():
+    task_list = []
+
+    def poster(t):
+        nonlocal task_list
+        task_list.append(t)
+        if isinstance(task_list[-1], Mastertask):
+            task_stream = Subject.from_list(task_list)
+            task_list = []
+            return task_stream
+
+    return poster
+
+ps = post_stream_maker()
 
 
 class TasksBind:
@@ -33,13 +51,12 @@ class TasksBind:
 
 class TasksResource(Resource):
     def post(self):
-        tpr = TaskPoster(request=request)
+        tpr = TaskParser(request=request)
         return tpr.post()
 
 
-class TaskPoster:
-    def __init__(self, request, backend=Backends.slurm):
-        self.backend = backend
+class TaskParser:
+    def __init__(self, request):
         self.request = request
 
     @property
@@ -60,27 +77,42 @@ class TaskPoster:
         return {k: v for k, v in self.body["details"].items() if k not in ["is_user_task"]}
 
     @property
+    def backend(self):
+        return self.request["backend"]
+
+    @property
     def is_master_task(self):
         try:
             return self.body["details"]["is_user_task"]
         except KeyError:
             print("Error! is_user_task field is requested!")
 
-
+    @methodispatch
     def post(self):
-        if self.backend is Backends.slurm:
-            task = deserialization(self.task_body)
-            task = TasksBind.tasks.post(task)
+        raise NotImplemented
 
-            slurmTask = deserialization(self.task_details)
-            slurmTask.task_id = task.id
-            slurmTask = TasksBind.tasks.post(slurmTask, task.id)
+    # def post(self):
+    #     if self.backend is Backends.slurm:
+    #         task = deserialization(self.task_body)
+    #         ps(task)
+    #         # task = TasksBind.tasks.post(task)
+    #
+    #         slurmTask = deserialization(self.task_details)
+    #         ps(slurmTask)
+    #         # slurmTask.task_id = task.id
+    #         # slurmTask = TasksBind.tasks.post(slurmTask, task.id)
+    #
+    #         if self.is_master_task:
+    #             # masterTask = TasksBind.tasks.post(Mastertask(backend=Backends.slurm.value, id=slurmTask.id))
+    #             real_ps = ps(Mastertask(backend=Backends.slurm.value, id=slurmTask.id))
+    #             real_ps.subscribe(print)
+    #             return serialization(Mastertask(backend=Backends.slurm.value, id=0)), 200
+    #
+    #         return serialization(slurmTask), 200
 
-            if self.is_master_task:
-                masterTask = TasksBind.tasks.post(Mastertask(backend=Backends.slurm.value, id=slurmTask.id))
-                return serialization(masterTask), 200
 
-            return serialization(slurmTask), 200
+
+
 
 
 def add_resource(api, tasks):

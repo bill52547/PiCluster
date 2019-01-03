@@ -1,19 +1,8 @@
 from ..database.model import TaskState, Task, SlurmTask, Mastertask
 from ..database.db import DataBase
+from ..dispatcher import methodispatch
 
 import arrow
-from functools import singledispatch, update_wrapper
-
-
-def methodispatch(func):
-    dispatcher = singledispatch(func)
-
-    def wrapper(*args, **kw):
-        return dispatcher.dispatch(args[1].__class__)(*args, **kw)
-
-    wrapper.register = dispatcher.register
-    update_wrapper(wrapper, func)
-    return wrapper
 
 
 class TaskTransactions:
