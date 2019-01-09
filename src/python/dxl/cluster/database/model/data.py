@@ -1,4 +1,5 @@
 from .tasks import backends, ioCollections
+# from ...interactive import TaskTransactions
 
 
 # backends.insert().value(backend='slurm')
@@ -59,3 +60,9 @@ def insert_all(db):
 
     for row in io_files:
         conn.execute(ioCollections.insert().values(file_name=row[0], comments=row[1], url=row[2]))
+
+    task_ops = [
+        ("mksubdir", "pygate.yml", ""),
+        ("bcast", "pygate.yml", ""),
+        ()
+    ]

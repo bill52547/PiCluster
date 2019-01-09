@@ -29,10 +29,6 @@ def connection_error_handle(func):
     return wrapper
 
 
-
-
-
-
 class Request:
     # TODO need refactor
 

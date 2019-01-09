@@ -1,6 +1,8 @@
-from sqlalchemy import Column, Integer, String, DateTime, Enum, Table, MetaData, ForeignKey, PrimaryKeyConstraint
+from sqlalchemy import Column, Integer, String, DateTime, Enum, Table, MetaData, ForeignKey, PrimaryKeyConstraint, JSON
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import mapper
+from rx.subjects import Subject
+from rx import Observable
 import marshmallow as ma
 import enum
 import attr
@@ -47,7 +49,8 @@ slurmTask = Table(
 masterTask = Table(
     'masterTask', meta,
     Column('backend', String, ForeignKey("backends.backend")),
-    Column('id', Integer, ForeignKey("slurmTask.id")),
+    Column('id', Integer),
+    Column('config', JSON),
     PrimaryKeyConstraint('backend', 'id', name='masterTask_pk')
 )
 
@@ -57,18 +60,21 @@ backends = Table(
 )
 
 
-procedures = Table(
-    'procedures', meta,
-    Column('procedure', String, primary_key=True)
-)
+# procedures = Table(
+#     'procedures', meta,
+#     Column('procedure', String, primary_key=True)
+# )
 
 
 taskOPs = Table(
     'taskOPs', meta,
-    Column('taskOP', String, primary_key=True),
-    Column('backend', String, ForeignKey("backends.backend")),
-    Column('procedure', String, ForeignKey("procedures.procedure")),
-    Column('on_complete', String, ForeignKey("taskOPs.taskOP"))
+    Column('title', String),
+    # Column('backend', String, ForeignKey("backends.backend")),
+    # Column('procedure', String, ForeignKey("procedures.procedure")),
+    # Column('on_complete', String, ForeignKey("taskOPs.taskOP"))
+    Column("inputs", postgresql.ARRAY(String, dimensions=1)),
+    Column('outputs', postgresql.ARRAY(String, dimensions=1)),
+    PrimaryKeyConstraint('title', 'inputs', name='taskOP_pk')
 )
 
 
@@ -125,11 +131,29 @@ class SlurmTask:
 class Mastertask:
     backend: typing.Optional[str] = None
     id: typing.Optional[str] = None
+    config: typing.Dict = None
+
+    def casts(self):
+        return Subject.from_(self.config['init']['broadcast']['targets'])
+
+    def source(self):
+        return Subject.from_(self.config['init']['external']).map(lambda x: x['source'])
+
+    def inputs(self):
+        return Observable.merge(self.casts(), self.source())
+
+
+@attr.s(auto_attribs=True)
+class TaskOP:
+    title: typing.Optional[str] = None
+    inputs: typing.Optional[list] = None
+    outputs: typing.Optional[list] = None
 
 
 mapper(Task, tasks)
 mapper(SlurmTask, slurmTask)
 mapper(Mastertask, masterTask)
+mapper(TaskOP, taskOPs)
 
 
 class TaskStateField(ma.fields.Field):
@@ -180,6 +204,7 @@ slurmTaskSchema = SlurmTaskSchema()
 class MasterTaskSchema(ma.Schema):
     backend = ma.fields.String(allow_none=False)
     id = ma.fields.Integer(allow_none=False)
+    config = ma.fields.Dict(allow_none=True)
 
 
 masterTaskschema = MasterTaskSchema()

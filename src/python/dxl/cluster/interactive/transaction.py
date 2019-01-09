@@ -1,7 +1,9 @@
-from ..database.model import TaskState, Task, SlurmTask, Mastertask
+from ..database.model import TaskState, Task, SlurmTask, Mastertask, TaskOP, ioCollections
 from ..database.db import DataBase
 from ..dispatcher import methodispatch
 
+from sqlalchemy.sql import select
+from sqlalchemy.sql.selectable import Select
 import arrow
 
 
@@ -11,11 +13,13 @@ class TaskTransactions:
 
     @methodispatch
     def post(self, t):
-        return self.post(t)
+        raise NotImplementedError
+        # return self.post(t)
 
     @methodispatch
     def read(self, t):
-        return self.read(t)
+        raise NotImplementedError
+        # return self.read(t)
 
 
 @TaskTransactions.post.register(Task)
@@ -38,7 +42,8 @@ def _(self, t: SlurmTask, task_id: int):
 
 
 @TaskTransactions.post.register(Mastertask)
-def _(self, t: Mastertask):
+@TaskTransactions.post.register(TaskOP)
+def _(self, t):
     with self.db.session() as sess:
         sess.add(t)
         sess.commit()
@@ -58,6 +63,14 @@ def _(self, t: SlurmTask):
 
 
 @TaskTransactions.read.register(Mastertask)
+@TaskTransactions.read.register(TaskOP)
 def _(self, t: Mastertask):
     with self.db.session() as sess:
         return sess.query(Mastertask).get((t.backend, t.id))
+
+
+@TaskTransactions.read.register(Select)
+def _(self, stmt):
+    # stmt = select([ioCollections])
+    with self.db.session() as sess:
+        return sess.execute(stmt).fetchall()
