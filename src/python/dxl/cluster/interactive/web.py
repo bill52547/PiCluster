@@ -8,15 +8,7 @@ import rx
 
 from ..database.model import TaskState, Task, Mastertask
 from ..database.model import taskSchema, slurmTaskSchema, SlurmTask
-
-
-
-
-def now(local=False):
-    if local:
-        return datetime.datetime.now()
-    else:
-        return datetime.datetime.utcnow()
+from ..config import WebConfig
 
 
 def connection_error_handle(func):
@@ -30,20 +22,18 @@ def connection_error_handle(func):
 
 
 class Request:
-    # TODO need refactor
-
 
     @staticmethod
     def url_rpc_call(func):
-        return f"http://202.120.1.61:3000/rpc/{func}"
+        return f"{WebConfig.POSTGREST_RPC_URL}{func}"
 
-    # @classmethod
-    # @connection_error_handle
-    # def create(cls, task):
-    #     task_json = task.to_json()
-    #     r = requests.post(cls._url_task, json=task_json).json()
-    #     task.id = r['id']
-    #     return task
+    @classmethod
+    @connection_error_handle
+    def create(cls, task):
+        task_json = task.to_json()
+        r = requests.post(cls._url_task, json=task_json).json()
+        task.id = r['id']
+        return task
 
     @classmethod
     @connection_error_handle
@@ -152,9 +142,9 @@ class Request:
         querystring = {"id": f"eq.{task_id}"}
         requests.patch(cls._url_postgrest_tasks, params=querystring, data=patch)
 
-    # @classmethod
-    # @connection_error_handle
-    # def delete(cls, id):
-    #     r = requests.delete(url(id))
-    #     if r.status_code == 404:
-    #         raise TaskNotFoundError(id)
+    @classmethod
+    @connection_error_handle
+    def delete(cls, id):
+        r = requests.delete(url(id))
+        if r.status_code == 404:
+            raise TaskNotFoundError(id)

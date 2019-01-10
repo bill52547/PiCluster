@@ -55,11 +55,6 @@ class TasksResource(Resource):
         return tpr.post()
 
 
-class RPCResource(Resource):
-    def get(self, ):
-
-
-
 class TaskParser:
     def __init__(self, request):
         self.request = request

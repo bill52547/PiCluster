@@ -1,4 +1,5 @@
 from functools import partial
+from ..config import WebConfig
 
 
 def api_root(ip, port):
@@ -9,7 +10,7 @@ def _req_url(ip, port, name):
     return api_root(ip, port)+str(name)
 
 
-task_req_url = partial(_req_url, "202.120.1.61", "3000")
+task_req_url = partial(_req_url, WebConfig.POSTGREST_IP, WebConfig.POSTGREST_PORT)
 
 
 def req_slurm(*arg, **kwargs):

@@ -6,11 +6,11 @@ from jfs.directory import Directory
 
 from .base import AutoName
 from enum import auto
-from ..web.urls import req_slurm
-from ..database.tasks import TaskParser, ps
-from ..database.transactions import deserialization, serialization
-from ..database.model import Mastertask
-from . import Backends
+from ..config.urls import req_slurm
+# from ..database.tasks import TaskParser, ps
+# from ..database.transactions import deserialization, serialization
+# from ..database.model import Mastertask
+# from . import Backends
 
 
 class SlurmOp(AutoName):
@@ -50,23 +50,23 @@ def scontrol(id: int):
     return rx.Observable.create(query)
 
 
-@TaskParser.post.register(self.backend = Backends.slurm)
-def _(self):
-    task = deserialization(self.task_body)
-    ps(task)
-    # task = TasksBind.tasks.post(task)
-
-    slurmTask = deserialization(self.task_details)
-    ps(slurmTask)
-    # slurmTask.task_id = task.id
-    # slurmTask = TasksBind.tasks.post(slurmTask, task.id)
-
-    if self.is_master_task:
-        # masterTask = TasksBind.tasks.post(Mastertask(backend=Backends.slurm.value, id=slurmTask.id))
-        real_ps = ps(Mastertask(backend=Backends.slurm.value, id=slurmTask.id))
-        real_ps.subscribe(print)
-        return serialization(Mastertask(backend=Backends.slurm.value, id=0)), 200
-
-    return serialization(slurmTask), 200
+# @TaskParser.post.register(self.backend = Backends.slurm)
+# def _(self):
+#     task = deserialization(self.task_body)
+#     ps(task)
+#     # task = TasksBind.tasks.post(task)
+#
+#     slurmTask = deserialization(self.task_details)
+#     ps(slurmTask)
+#     # slurmTask.task_id = task.id
+#     # slurmTask = TasksBind.tasks.post(slurmTask, task.id)
+#
+#     if self.is_master_task:
+#         # masterTask = TasksBind.tasks.post(Mastertask(backend=Backends.slurm.value, id=slurmTask.id))
+#         real_ps = ps(Mastertask(backend=Backends.slurm.value, id=slurmTask.id))
+#         real_ps.subscribe(print)
+#         return serialization(Mastertask(backend=Backends.slurm.value, id=0)), 200
+#
+#     return serialization(slurmTask), 200
 
 

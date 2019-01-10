@@ -1,6 +1,12 @@
 import json
 from dxl.cluster.time.utils import now, delta, strf, strp
 
+# def now(local=False):
+#     if local:
+#         return datetime.datetime.now()
+#     else:
+#         return datetime.datetime.utcnow()
+
 
 class TimeStamps:
     """ A dict of time stamps
