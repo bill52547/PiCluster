@@ -31,10 +31,17 @@ tasks = Table(
     Column('submit', DateTime(timezone=True)),
     Column('finish', DateTime(timezone=True)),
     Column('depends', postgresql.ARRAY(Integer, dimensions=1)),
+    Column('scheduler', String),
     Column('backend', String, ForeignKey("backends.backend")),
-    Column('thenext', Integer)
+    Column('workdir', String),
+    Column('id_on_backend', Integer),
+    Column('state_on_backend', Enum(TaskState, name='state_enum', metadata=meta)),
+    Column('worker', String),
+    Column('script', String, ForeignKey("ioCollections.file_name")),
+    Column('fn', String)
 )
 
+# TODO 拆
 slurmTask = Table(
     'slurmTask', meta,
     Column('id', Integer, primary_key=True),
@@ -48,10 +55,13 @@ slurmTask = Table(
 
 masterTask = Table(
     'masterTask', meta,
+    Column('id', Integer, primary_key=True),
+    Column('task_id', Integer, ForeignKey("tasks.id")),
     Column('backend', String, ForeignKey("backends.backend")),
-    Column('id', Integer),
-    Column('config', JSON),
-    PrimaryKeyConstraint('backend', 'id', name='masterTask_pk')
+    Column('workdir', String),
+    Column('state', Enum(TaskState, name='state_enum', metadata=meta)),
+    Column('config', JSON)
+    # PrimaryKeyConstraint('backend', 'workdir', name='masterTask_pk')
 )
 
 backends = Table(
@@ -107,15 +117,22 @@ phantomBins = Table(
 @attr.s(auto_attribs=True)
 class Task:
     id: typing.Optional[int] = None
-    scheduler: typing.Optional[str] = None
     state: TaskState = TaskState.Created
     create: typing.Optional[datetime.datetime] = None
     submit: typing.Optional[datetime.datetime] = None
     finish: typing.Optional[datetime.datetime] = None
     depends: typing.List[int] = ()
-    thenext: typing.Optional[int] = None
+    scheduler: typing.Optional[str] = None
+    backend: typing.Optional[str] = None
+    workdir: typing.Optional[str] = None
+    id_on_backend: typing.Optional[int] = None
+    state_on_backend: TaskState = TaskState.Created
+    worker: typing.Optional[str] = None
+    script: typing.Optional[str] = None
+    fn: typing.Optional[str] = None
 
 
+#TODO 拆
 @attr.s(auto_attribs=True)
 class SlurmTask:
     id: typing.Optional[int] = None
@@ -129,8 +146,11 @@ class SlurmTask:
 
 @attr.s(auto_attribs=True)
 class Mastertask:
-    backend: typing.Optional[str] = None
     id: typing.Optional[str] = None
+    task_id: typing.Optional[str] = None
+    backend: typing.Optional[str] = None
+    workdir: typing.Optional[str] = None
+    state: TaskState = TaskState.Created
     config: typing.Dict = None
 
     def casts(self):
@@ -151,7 +171,7 @@ class TaskOP:
 
 
 mapper(Task, tasks)
-mapper(SlurmTask, slurmTask)
+# mapper(SlurmTask, slurmTask)
 mapper(Mastertask, masterTask)
 mapper(TaskOP, taskOPs)
 
@@ -176,18 +196,25 @@ class TaskStateField(ma.fields.Field):
 
 class TasksSchema(ma.Schema):
     id = ma.fields.Integer(allow_none=False)
-    # scheduler = ma.fields.Url(allow_none=True)
     state = TaskStateField(attribute="state")
     create = ma.fields.DateTime(allow_none=True)
     submit = ma.fields.DateTime(allow_none=True)
     finish = ma.fields.DateTime(allow_none=True)
     depends = ma.fields.List(ma.fields.Integer())
-    thenext = ma.fields.Integer(allow_none=True)
+    scheduler = ma.fields.String(allow_none=True)
+    backend = ma.fields.String(allow_none=True)
+    workdir = ma.fields.String(allow_none=True)
+    id_on_backend = ma.fields.Integer(allow_none=True)
+    state_on_backend = ma.fields.String(allow_none=True)
+    worker = ma.fields.String(allow_none=True)
+    script = ma.fields.String(allow_none=True)
+    fn = ma.fields.String(allow_none=True)
 
 
 taskSchema = TasksSchema()
 
 
+# todo 拆
 class SlurmTaskSchema(ma.Schema):
     id = ma.fields.Integer(allow_none=False)
     task_id = ma.fields.Integer(allow_none=False)
@@ -202,8 +229,11 @@ slurmTaskSchema = SlurmTaskSchema()
 
 
 class MasterTaskSchema(ma.Schema):
-    backend = ma.fields.String(allow_none=False)
     id = ma.fields.Integer(allow_none=False)
+    task_id = ma.fields.Integer(allow_none=False)
+    backend = ma.fields.String(allow_none=False)
+    state = TaskStateField(attribute="state")
+    workdir = ma.fields.String(allow_none=True)
     config = ma.fields.Dict(allow_none=True)
 
 

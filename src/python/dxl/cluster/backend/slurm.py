@@ -25,9 +25,10 @@ def squeue():
     return json.loads(response)
 
 
-def sbatch(workdir: Directory, filename):
-    args = filename
-    _url = req_slurm(SlurmOp.sbatch.value, args=args, filename=filename, workdir=workdir)
+def sbatch(work_dir: Directory, file):
+    arg = file
+    _url = req_slurm(SlurmOp.sbatch.value, arg=arg, file=file, work_dir=work_dir)
+    print(_url)
     result = requests.post(_url).json()
     return result['job_id']
 

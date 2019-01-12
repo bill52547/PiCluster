@@ -66,7 +66,7 @@ def _(self, t: SlurmTask):
 @TaskTransactions.read.register(TaskOP)
 def _(self, t: Mastertask):
     with self.db.session() as sess:
-        return sess.query(Mastertask).get((t.backend, t.id))
+        return sess.query(Mastertask).get((t.id))
 
 
 @TaskTransactions.read.register(Select)
