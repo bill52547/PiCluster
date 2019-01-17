@@ -1,4 +1,11 @@
 import rx
+from collections import UserDict
+
+
+class TaskBase(UserDict):
+    def __init__(self, **kwargs):
+        super().__init__(kwargs)
+
 
 
 class taskStreamFactory:

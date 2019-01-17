@@ -1,4 +1,5 @@
 from setuptools import setup, find_packages
+
 setup(name='dxl-cluster',
       version='0.0.6',
       description='Cluster utility library.',
@@ -27,9 +28,13 @@ setup(name='dxl-cluster',
           'psycopg2',
           'flask',
           'flask-restful',
-          'arrow'
+          'arrow',
           'requests',
           'sqlalchemy'
       ],
+      entry_points='''
+            [console_scripts]
+            dxcluster=dxl.cluster.cli:cli
+      ''',
       scripts=[],
       zip_safe=False)

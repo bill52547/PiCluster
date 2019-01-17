@@ -41,17 +41,6 @@ tasks = Table(
     Column('fn', String)
 )
 
-# TODO 拆
-slurmTask = Table(
-    'slurmTask', meta,
-    Column('id', Integer, primary_key=True),
-    Column('task_id', Integer, ForeignKey("tasks.id")),
-    Column('slurm_id', Integer),
-    Column('slurm_state', String),
-    Column('worker', String),
-    Column('workdir', String),
-    Column('script', String, ForeignKey("ioCollections.file_name"))
-)
 
 masterTask = Table(
     'masterTask', meta,
@@ -61,7 +50,6 @@ masterTask = Table(
     Column('workdir', String),
     Column('state', Enum(TaskState, name='state_enum', metadata=meta)),
     Column('config', JSON)
-    # PrimaryKeyConstraint('backend', 'workdir', name='masterTask_pk')
 )
 
 backends = Table(
@@ -70,22 +58,22 @@ backends = Table(
 )
 
 
-# procedures = Table(
-#     'procedures', meta,
-#     Column('procedure', String, primary_key=True)
-# )
-
-
-taskOPs = Table(
-    'taskOPs', meta,
-    Column('title', String),
-    # Column('backend', String, ForeignKey("backends.backend")),
-    # Column('procedure', String, ForeignKey("procedures.procedure")),
-    # Column('on_complete', String, ForeignKey("taskOPs.taskOP"))
-    Column("inputs", postgresql.ARRAY(String, dimensions=1)),
-    Column('outputs', postgresql.ARRAY(String, dimensions=1)),
-    PrimaryKeyConstraint('title', 'inputs', name='taskOP_pk')
+procedures = Table(
+    'procedures', meta,
+    Column('procedure', String, primary_key=True),
+    Column('command', postgresql.ARRAY(String, dimensions=1))
 )
+
+
+# taskOPs = Table(
+#     'taskOPs', meta,
+#     Column('id', Integer, primary_key=True),
+#     Column('title', String),
+#     Column('procedure', postgresql.ARRAY(String, dimensions=1)),
+#     Column('args', postgresql.ARRAY(String, dimensions=1)),
+#     Column("inputs", postgresql.ARRAY(String, dimensions=1)),
+#     Column('outputs', postgresql.ARRAY(String, dimensions=1))
+# )
 
 
 ioCollections = Table(
@@ -99,16 +87,25 @@ ioCollections = Table(
 macs = Table(
     'macs', meta,
     Column('id', Integer, primary_key=True),
-    Column('mac', String),
+    Column('file_name', String),
     Column('comments', String),
     Column('url', String)
 )
 
 
-phantomBins = Table(
-    'phantomBins', meta,
+phantoms = Table(
+    'phantoms', meta,
     Column('id', Integer, primary_key=True),
-    Column('phantomBin', String),
+    Column('phantom_bin', String),
+    Column('activity_range', String),
+    Column('range_material', String)
+)
+
+
+phantomHeaders = Table(
+    'phantomHeaders', meta,
+    Column('id', Integer, primary_key=True),
+    Column('file_name', String),
     Column('comments', String),
     Column('url', String)
 )
@@ -131,17 +128,17 @@ class Task:
     script: typing.Optional[str] = None
     fn: typing.Optional[str] = None
 
-
-#TODO 拆
-@attr.s(auto_attribs=True)
-class SlurmTask:
-    id: typing.Optional[int] = None
-    task_id: typing.Optional[int] = None
-    slurm_id: typing.Optional[int] = None
-    slurm_state: typing.Optional[str] = None
-    worker: typing.Optional[str] = None
-    workdir: typing.Optional[str] = None
-    script: typing.Optional[str] = None
+#
+# #TODO 拆
+# @attr.s(auto_attribs=True)
+# class SlurmTask:
+#     id: typing.Optional[int] = None
+#     task_id: typing.Optional[int] = None
+#     slurm_id: typing.Optional[int] = None
+#     slurm_state: typing.Optional[str] = None
+#     worker: typing.Optional[str] = None
+#     workdir: typing.Optional[str] = None
+#     script: typing.Optional[str] = None
 
 
 @attr.s(auto_attribs=True)
@@ -163,17 +160,20 @@ class Mastertask:
         return Observable.merge(self.casts(), self.source())
 
 
-@attr.s(auto_attribs=True)
-class TaskOP:
-    title: typing.Optional[str] = None
-    inputs: typing.Optional[list] = None
-    outputs: typing.Optional[list] = None
+# @attr.s(auto_attribs=True)
+# class TaskOP:
+#     id: typing.Optional[int] = None
+#     title: typing.Optional[str] = None
+#     procedures: typing.Optional[list] = None
+#     args: typing.Optional[list] = None
+#     inputs: typing.Optional[list] = None
+#     outputs: typing.Optional[list] = None
 
 
 mapper(Task, tasks)
 # mapper(SlurmTask, slurmTask)
 mapper(Mastertask, masterTask)
-mapper(TaskOP, taskOPs)
+# mapper(TaskOP, taskOPs)
 
 
 class TaskStateField(ma.fields.Field):
@@ -214,18 +214,18 @@ class TasksSchema(ma.Schema):
 taskSchema = TasksSchema()
 
 
-# todo 拆
-class SlurmTaskSchema(ma.Schema):
-    id = ma.fields.Integer(allow_none=False)
-    task_id = ma.fields.Integer(allow_none=False)
-    slurm_id = ma.fields.Integer(allow_none=True)
-    slurm_state = ma.fields.String(allow_none=True)
-    worker = ma.fields.String(allow_none=True)
-    workdir = ma.fields.String(allow_none=True)
-    script = ma.fields.String(allow_none=True)
+# # todo 拆
+# class SlurmTaskSchema(ma.Schema):
+#     id = ma.fields.Integer(allow_none=False)
+#     task_id = ma.fields.Integer(allow_none=False)
+#     slurm_id = ma.fields.Integer(allow_none=True)
+#     slurm_state = ma.fields.String(allow_none=True)
+#     worker = ma.fields.String(allow_none=True)
+#     workdir = ma.fields.String(allow_none=True)
+#     script = ma.fields.String(allow_none=True)
 
 
-slurmTaskSchema = SlurmTaskSchema()
+# slurmTaskSchema = SlurmTaskSchema()
 
 
 class MasterTaskSchema(ma.Schema):

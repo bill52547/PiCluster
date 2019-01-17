@@ -1,16 +1,16 @@
 import rx
-import yaml
 import json
+import yaml
 import requests
+import shutil
 from jfs.directory import Directory
+from pathlib import Path
 
 from .base import AutoName
 from enum import auto
 from ..config.urls import req_slurm
-# from ..database.tasks import TaskParser, ps
-# from ..database.transactions import deserialization, serialization
-# from ..database.model import Mastertask
-# from . import Backends
+from ..interactive.web import Request
+from ..interactive.templates import env, master_task_on_slurm
 
 
 class SlurmOp(AutoName):
@@ -51,23 +51,39 @@ def scontrol(id: int):
     return rx.Observable.create(query)
 
 
-# @TaskParser.post.register(self.backend = Backends.slurm)
-# def _(self):
-#     task = deserialization(self.task_body)
-#     ps(task)
-#     # task = TasksBind.tasks.post(task)
-#
-#     slurmTask = deserialization(self.task_details)
-#     ps(slurmTask)
-#     # slurmTask.task_id = task.id
-#     # slurmTask = TasksBind.tasks.post(slurmTask, task.id)
-#
-#     if self.is_master_task:
-#         # masterTask = TasksBind.tasks.post(Mastertask(backend=Backends.slurm.value, id=slurmTask.id))
-#         real_ps = ps(Mastertask(backend=Backends.slurm.value, id=slurmTask.id))
-#         real_ps.subscribe(print)
-#         return serialization(Mastertask(backend=Backends.slurm.value, id=0)), 200
-#
-#     return serialization(slurmTask), 200
+def config_parser(config_dict):
+    tmp_outer = []
+    for k, v in config_dict.items():
+        tmp_inner = []
+        tmp_inner.append(k)
+        if isinstance(v, dict):
+            for k, v_1 in v.items():
+                tmp_inner.append(k)
+                tmp_inner.append(v_1)
+        tmp_outer.append(tmp_inner)
+    return tmp_outer
 
 
+def url_parser(query_config):
+    all_inputs = []
+
+    for row in query_config:
+        response = Request.read(table_name=row[0],
+                                item=row[1],
+                                condition=row[2],
+                                returns=row[4])
+        for r in response['data'][row[0]]:
+            for k, v in r.items():
+                all_inputs.append(v)
+    return all_inputs
+
+
+def input_loading(workdir, source):
+    if not isinstance(workdir):
+        workdir = Path(workdir)
+    for f in source:
+        if isinstance(f, Path):
+            shutil.copyfile(f, workdir/f.name)
+        if isinstance(f, str):
+            f = Path(f)
+            shutil.copyfile(f, workdir/f.name)

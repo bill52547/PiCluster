@@ -1,0 +1,14 @@
+"""mutation {
+  update_{{table_name}}(
+    where: {id: {_eq: {{id}}}},
+    _set: {
+      {% for k,v in patches.items() %}{{k}}: {{v}}{% endfor %}
+    }
+  ){
+    returning{
+      id
+      state
+    }
+  }
+}
+"""

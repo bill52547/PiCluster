@@ -5,9 +5,10 @@
 import yaml
 
 
-def load_config(fn='./task.yml'):
+def load_config(fn='./config.yml'):
     try:
         with open(fn, 'r') as fin:
             return yaml.load(fin)
     except FileNotFoundError as e:
         return {}
+

@@ -1,33 +1,11 @@
 from flask import request
-from flask_restful import Api, Resource, reqparse
-from ..database.model import Mastertask, TaskState
-from ..backend import Backends
-from ..database.transactions import deserialization, serialization
+from flask_restful import Resource
+from ..database.model import Mastertask
+from dxl.cluster.database.transactions import deserialization, serialization
 from ..interactive.transaction import TaskTransactions
-from rx.subjects import Subject
-from ..dispatcher import methodispatch
-
 
 API_VERSION = 1
 TASK_API_URL = f"/api/v{API_VERSION}/tasks"
-# TASK_SLURM_API_URL = f"/api/v{API_VERSION}/taskslurm"
-# JOIN_API_URL = f"/api/v{API_VERSION}/jointask"
-
-
-# def post_stream_maker():
-#     task_list = []
-#
-#     def poster(t):
-#         nonlocal task_list
-#         task_list.append(t)
-#         if isinstance(task_list[-1], Mastertask):
-#             task_stream = Subject.from_list(task_list)
-#             task_list = []
-#             return task_stream
-#
-#     return poster
-#
-# ps = post_stream_maker()
 
 
 class TasksBind:
@@ -80,7 +58,6 @@ class TaskParser:
                     dict_parser(v)
         dict_parser(self.body)
         return tmp
-        # return {k: v for k, v in self.body.items() if k not in ["details"]}
 
     @property
     def task_details(self):
@@ -97,9 +74,9 @@ class TaskParser:
         except KeyError:
             print("Error! is_master_task field is requested!")
 
-    @methodispatch
-    def post(self):
-        raise NotImplemented
+    # @methodispatch
+    # def post(self):
+    #     raise NotImplemented
 
     def post(self):
         task = deserialization(self.task_details)
@@ -110,7 +87,6 @@ class TaskParser:
                                                          backend=self.backend,
                                                          workdir=task.workdir))
             masterTask = TasksBind.tasks.post(masterTask)
-            # print(masterTask)
             return serialization(masterTask), 200
 
         return serialization(task), 200
