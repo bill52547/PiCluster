@@ -1,8 +1,11 @@
+import yaml
 from flask import request
 from flask_restful import Resource
 from ..database.model import Mastertask
 from dxl.cluster.database.transactions import deserialization, serialization
 from ..interactive.transaction import TaskTransactions
+from ..config import ConfigFile
+
 
 API_VERSION = 1
 TASK_API_URL = f"/api/v{API_VERSION}/tasks"
@@ -83,9 +86,12 @@ class TaskParser:
         task = TasksBind.tasks.post(task)
 
         if self.is_master_task:
+            with open(task.workdir+"/"+ConfigFile.TaskConfigFName, "rt") as f:
+                conf = yaml.load(f.read())
             masterTask = TasksBind.tasks.post(Mastertask(task_id=task.id,
                                                          backend=self.backend,
-                                                         workdir=task.workdir))
+                                                         workdir=task.workdir,
+                                                         config=conf))
             masterTask = TasksBind.tasks.post(masterTask)
             return serialization(masterTask), 200
 

@@ -35,6 +35,8 @@ class GraphQLConfig(Config):
     GraphQL_URL = f"http://{GraphQL_IP}:{GraphQL_PORT}/v1alpha1/graphql"
 
 
+class ConfigFile(Config):
+    TaskConfigFName = "dxclusterConf.yaml"
 
 
 # _default = {

@@ -81,8 +81,10 @@ spec:
   outputs:
   - result.root
   procedures:
-  - init_subdir
-  - submit
-  - input_loading
-  - bcast
+  - 
+    ["pygate","init","subdir","-n","{{nb_split}}"]
+  - 
+    ["pygate","init","bcast"]
+  - 
+    ["pygate","submit"]
 """

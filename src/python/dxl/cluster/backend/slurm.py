@@ -88,7 +88,7 @@ def input_loading(workdir, source):
         #     shutil.copyfile(f, workdir/f.name)
         if isinstance(f, str):
             f = Path(f)
-            if f.parents[0]==workdir:
+            if f.parents[0] == workdir:
                 pass
             shutil.copyfile(f, workdir/f.name)
 
@@ -116,3 +116,16 @@ def clean_with_config(config_url):
             print(f"{'./'+str(Path(url).name)} has been removed")
         except:
             pass
+
+
+def procedure_parser(conf):
+    # tmp = []
+    # for procedure in conf['spec']['procedures']:
+    #     resp = Request.read(table_name='procedures',
+    #                         column='procedure',
+    #                         condition=procedure,
+    #                         returns=["command"])
+    #     tmp.append(resp['data']['procedures'][0]['command'])
+    # return tmp
+    conf = yaml.load(conf)
+    return conf['spec']['procedures']
