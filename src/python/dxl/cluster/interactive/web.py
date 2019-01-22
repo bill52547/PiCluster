@@ -4,8 +4,9 @@ import requests
 import json
 import rx
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from typing import Iterable
 
-from .templates import query_update, query_read
+from .templates import query_update, query_read, query_insert
 from ..database.model import TaskState, Task, Mastertask
 from ..database.model import taskSchema
 from ..config import WebConfig, GraphQLConfig
@@ -47,14 +48,16 @@ class Request:
         return cls.run_query(query)
 
     @classmethod
-    def read(cls, table_name, item, condition, returns):
+    def read(cls, table_name: str, column: str, condition: str, returns: Iterable[str]):
         j2_template = cls.j2_env.from_string(query_read)
-        query = j2_template.render(table_name=table_name, item=item, condition=condition, returns=returns)
+        query = j2_template.render(table_name=table_name, item=column, condition=condition, returns=returns)
         return cls.run_query(query)
 
     @classmethod
-    def post(cls):
-        pass
+    def insert(cls, table_name: str, inserts: dict):
+        j2_template = cls.j2_env.from_string(query_insert)
+        query = j2_template.render(table_name=table_name, inserts=inserts)
+        return cls.run_query(query)
 
 
 

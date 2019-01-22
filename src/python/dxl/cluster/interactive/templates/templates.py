@@ -31,13 +31,31 @@ query {
 }
 """
 
+
+query_insert = """
+mutation {
+  insert_{{table_name}}(
+    objects:[
+      {
+        {% for k,v in inserts.items() %}{{k}}: "{{v}}"{% endfor %}
+      }
+    ]
+  ){
+    returning {
+      id
+    }
+  }
+}
+"""
+
+
 master_task_config = """
 version: v0.0.1
 kind: masterTaskConfiguration
 metadata:
   backend: {{backend}}
-  workdir: 
-  mastTaskID: 
+  workdir: {{workdir}}
+  mastTaskID: {{mastTaskID}}
 spec:
   init:
    nb_split: {{nb_split}}
@@ -51,11 +69,11 @@ spec:
       returns:
       - url
     phantomHeaders:
-      comments: {{phantomHeader}}
+      comments: {{phantom_header}}
       returns:
       - url
     phantoms:
-      id: {{phantoms_id}}
+      id: {{phantom_id}}
       returns:
       - phantom_bin
       - activity_range

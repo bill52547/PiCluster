@@ -1,16 +1,18 @@
 import rx
+import os
 import json
 import yaml
 import requests
 import shutil
 from jfs.directory import Directory
 from pathlib import Path
+from yaml import Loader, Dumper
 
 from .base import AutoName
 from enum import auto
 from ..config.urls import req_slurm
 from ..interactive.web import Request
-from ..interactive.templates import env, master_task_on_slurm
+from ..interactive.templates import env, master_task_config
 
 
 class SlurmOp(AutoName):
@@ -69,7 +71,7 @@ def url_parser(query_config):
 
     for row in query_config:
         response = Request.read(table_name=row[0],
-                                item=row[1],
+                                column=row[1],
                                 condition=row[2],
                                 returns=row[4])
         for r in response['data'][row[0]]:
@@ -79,11 +81,38 @@ def url_parser(query_config):
 
 
 def input_loading(workdir, source):
-    if not isinstance(workdir):
+    if not isinstance(workdir, Path):
         workdir = Path(workdir)
     for f in source:
-        if isinstance(f, Path):
-            shutil.copyfile(f, workdir/f.name)
+        # if isinstance(f, Path):
+        #     shutil.copyfile(f, workdir/f.name)
         if isinstance(f, str):
             f = Path(f)
+            if f.parents[0]==workdir:
+                pass
             shutil.copyfile(f, workdir/f.name)
+
+
+def init_with_config(config_url, workdir):
+    with open(config_url, 'rt') as f:
+        config_data = yaml.load(f.read(), Loader=Loader)
+
+    urls = []
+    urls += url_parser(config_parser(config_data['spec']['inputs']))
+
+    input_loading(workdir=workdir, source=urls)
+    return urls
+
+
+def clean_with_config(config_url):
+    with open(config_url, 'rt') as f:
+        config_data = yaml.load(f.read(), Loader=Loader)
+    urls = []
+    urls += url_parser(config_parser(config_data['spec']['inputs']))
+
+    for url in urls:
+        try:
+            os.remove("./"+str(Path(url).name))
+            print(f"{'./'+str(Path(url).name)} has been removed")
+        except:
+            pass

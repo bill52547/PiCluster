@@ -1,37 +1,56 @@
 import click
-from dxl.cluster.interactive.web import Request
-import os
+import subprocess
+from os import getcwd
 
-# def auto_sub():
-#     from ..conf import config, KEYS
-#     if config.get(KEYS.SUB_PATTERNS) is None:
-#         config[KEYS.SUB_PATTERNS] = [config.get(KEYS.SUB_PREFIX) + '*']
-#         config[KEYS.SUB_FORMAT] = config.get(KEYS.SUB_PREFIX) + r'.{}'
+from ..interactive.templates import env, master_task_config
+from ..backend.slurm import init_with_config, clean_with_config
 
 
-# def load_config(filename, is_no_config, dryrun):
-#     from ..conf import config, KEYS
-#     import yaml
-#     import json
-#     if dryrun is not None:
-#         config['dryrun'] = dryrun
-#     if not is_no_config and filename is not None:
-#         with open(filename, 'r') as fin:
-#             if filename.endswith('yml'):
-#                 config.update(yaml.load(fin))
-#             else:
-#                 config.update(json.load(fin))
-#     auto_sub()
-
-
-# @click.group()
-# @click.option('--config', help="config file name", default=None)
-# def cli(config):
-#     click.echo(config)
-#     click.echo(os.getcwd())
+@click.group()
+def cli():
+    pass
 
 
 @click.command()
-def cli():
-    """Example script."""
-    click.echo('Hello World!')
+@click.option('--backend', default='slurm', help='Which backend will the task based on.')
+@click.option('--nb_split', default=10, help='Number of sub tasks.')
+@click.option('--mac', help='Retrive mac from DB according given comment.')
+@click.option('--phantom_header', help='Retrive phantom header file from DB according given comment.')
+@click.option('--phantom_id', help='ID of phantom in the task.')
+def init(backend, nb_split, mac, phantom_header, phantom_id):
+    template = env.from_string(master_task_config)
+    conf = template.render(backend=backend,
+                           workdir=getcwd(),
+                           mastTaskID=None,
+                           nb_split=nb_split,
+                           mac=mac,
+                           phantom_header=phantom_header,
+                           phantom_id=phantom_id)
+    print()
+    print(conf)
+    with open('./dxclusterConf.yaml', 'w') as config_out:
+        print(conf, file=config_out)
+
+    init_with_config(config_url='./dxclusterConf.yaml', workdir=getcwd())
+    # subprocess.run(["pygate", "init", "subdir", "-n", ""], cwd=getcwd())
+
+
+@click.command()
+def clean():
+    clean_with_config('./dxclusterConf.yaml')
+
+
+
+
+
+# @click.command()
+# @click.option('--count', default=1, help='number of greetings')
+# @click.argument('name')
+# def hello(count, name):
+#     for x in range(count):
+#         click.echo('Hello %s!' % name)
+
+
+cli.add_command(init)
+# cli.add_command(hello)
+cli.add_command(clean)
