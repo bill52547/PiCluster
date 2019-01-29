@@ -2,7 +2,7 @@ import rx
 from rx import Observer
 from apscheduler.schedulers.blocking import BlockingScheduler
 from dxl.cluster.database.model import Task, TaskState
-from dxl.cluster.backend.slurm import sbatch, scontrol
+from dxl.cluster.backend.slurm.slurm import sbatch, scontrol
 from ..interactive.web import Request
 import arrow
 

@@ -36,7 +36,9 @@ class GraphQLConfig(Config):
 
 
 class ConfigFile(Config):
-    TaskConfigFName = "dxclusterConf.yaml"
+    FileName = "dxclusterConf.yaml"
+    CwdConf = './'+FileName
+
 
 
 # _default = {

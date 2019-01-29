@@ -3,7 +3,7 @@ import subprocess
 from os import getcwd
 
 from ..interactive.templates import env, master_task_config
-from ..backend.slurm import init_with_config, clean_with_config, procedure_parser
+from ..backend.slurm.slurm import init_with_config, clean_with_config, procedure_parser
 from ..config import ConfigFile
 
 
@@ -29,10 +29,10 @@ def init(backend, nb_split, mac, phantom_header, phantom_id):
                            phantom_id=phantom_id)
     print()
     print(conf)
-    with open('./dxclusterConf.yaml', 'w') as config_out:
+    with open(ConfigFile.CwdConf, 'w') as config_out:
         print(conf, file=config_out)
 
-    init_with_config(config_url='./'+ConfigFile.TaskConfigFName, workdir=getcwd())
+    init_with_config(config_url=ConfigFile.CwdConf, workdir=getcwd())
 
     for procedure in procedure_parser(conf):
         print(f"Running: {procedure}")
@@ -41,7 +41,7 @@ def init(backend, nb_split, mac, phantom_header, phantom_id):
 
 @click.command()
 def clean():
-    clean_with_config('./'+ConfigFile.TaskConfigFName)
+    clean_with_config('./' + ConfigFile.FileName)
     subprocess.run(["pygate", "clean", "-d"], cwd=getcwd())
 
 

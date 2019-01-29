@@ -6,10 +6,12 @@ import rx
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from typing import Iterable
 
-from .templates import query_update, query_read, query_insert
+from .templates import query_update, query_conditional_read, query_insert, query_read
 from ..database.model import TaskState, Task, Mastertask
 from ..database.model import taskSchema
 from ..config import WebConfig, GraphQLConfig
+from ..database.transactions import deserialization
+from functools import partial
 
 
 # def connection_error_handle(func):
@@ -48,10 +50,38 @@ class Request:
         return cls.run_query(query)
 
     @classmethod
-    def read(cls, table_name: str, column: str, condition: str, returns: Iterable[str]):
-        j2_template = cls.j2_env.from_string(query_read)
-        query = j2_template.render(table_name=table_name, item=column, condition=condition, returns=returns)
-        return cls.run_query(query)
+    def read(cls, table_name: str, select: str, condition: str, returns: Iterable[str], operator="_eq"):
+        """select & condition can be none."""
+        if select is not None and condition is not None:
+            j2_template = cls.j2_env.from_string(query_conditional_read)
+            query = j2_template.render(table_name=table_name,
+                                       select=select,
+                                       operator=operator,
+                                       condition=condition,
+                                       returns=returns)
+            return cls.run_query(query)
+        else:
+            j2_template = cls.j2_env.from_string(query_read)
+            query = j2_template.render(table_name=table_name, returns=returns)
+            return cls.run_query(query)
+
+    @classmethod
+    def read_tasks(cls, taskid_list):
+        if isinstance(taskid_list, int):
+            taskid_list = [taskid_list]
+        if isinstance(taskid_list, list):
+            tmp = []
+            response = Request.read(table_name='tasks',
+                                    select='id',
+                                    operator='_in',
+                                    returns=taskSchema.declared_fields.keys(),
+                                    condition=taskid_list)
+            for t in response['data']['tasks']:
+                tmp.append(deserialization(t))
+
+            return tmp
+        else:
+            raise TypeError
 
     @classmethod
     def insert(cls, table_name: str, inserts: dict):
@@ -59,7 +89,34 @@ class Request:
         query = j2_template.render(table_name=table_name, inserts=inserts)
         return cls.run_query(query)
 
+    @classmethod
+    def get_submitable(cls, tasks_to_track=1):
+        #TODO 序列化/反序列化  还用原来方法做
 
+        query_template = """
+            query {
+              masterTask(
+                limit: {{tasks_to_track}}
+                where: {state: {_eq: "Created"}}
+              ){
+                id
+                tasksBytaskId{
+                  id
+                  depends
+                }
+              }
+            }
+        """
+        j2_template = cls.j2_env.from_string(query_template)
+        query = j2_template.render(tasks_to_track=tasks_to_track)
+        response = cls.run_query(query)
+
+        d = {}
+
+        for t in response['data']['masterTask']:
+            d[t['tasksBytaskId']['id']] = t['tasksBytaskId']['depends']
+
+        return d
 
 # class Request:
 #

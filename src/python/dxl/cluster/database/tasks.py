@@ -77,16 +77,12 @@ class TaskParser:
         except KeyError:
             print("Error! is_master_task field is requested!")
 
-    # @methodispatch
-    # def post(self):
-    #     raise NotImplemented
-
     def post(self):
         task = deserialization(self.task_details)
         task = TasksBind.tasks.post(task)
 
         if self.is_master_task:
-            with open(task.workdir+"/"+ConfigFile.TaskConfigFName, "rt") as f:
+            with open(task.workdir+"/"+ConfigFile.FileName, "rt") as f:
                 conf = yaml.load(f.read())
             masterTask = TasksBind.tasks.post(Mastertask(task_id=task.id,
                                                          backend=self.backend,

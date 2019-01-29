@@ -21,10 +21,20 @@ mutation {
 }
 """
 
+
 query_read = """
 query {
+  {{table_name}}{
+    {% for i in returns %}{{i}}\n{% endfor %}
+  }
+}
+"""
+
+
+query_conditional_read = """
+query {
   {{table_name}}(
-    where: { {{item}}: {_eq: "{{condition}}"}}
+    where: { {{select}}: { {{operator}}: {{condition|safe}} }}
   ){
     {% for i in returns %}{{i}}\n{% endfor %}
   }

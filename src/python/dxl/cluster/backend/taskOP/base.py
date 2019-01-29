@@ -10,13 +10,6 @@ import subprocess
 
 simple_callback = lambda: "Done"
 
-# def load_config(fn='./config.yml'):
-#     try:
-#         with open(fn, 'r') as fin:
-#             return yaml.load(fin)
-#     except FileNotFoundError as e:
-#         return {}
-
 
 def op_factory(op):
     return rx.Observable.defer(lambda: rx.Observable.start(op))
