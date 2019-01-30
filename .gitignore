@@ -105,3 +105,7 @@ munge.key
 
 # MAC folder config
 */.DS_store
+
+# VS 
+.vscode
+.vs
