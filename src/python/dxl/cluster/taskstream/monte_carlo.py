@@ -9,8 +9,8 @@ from .combinator import parallel, sequential, average_time_detector
 def mac_generator(work_directory, config: "JSON/Dict") -> Observable[Resource[File]]:
     return (
         mkdir_if_not_exist(work_directory)
-        .map(lambda d: create_mac(d, config))
-        .map(lambda f: create_in_database(f))
+        .switch_map(lambda d: create_mac(d, config))
+        .switch_map(lambda f: create(f))
     )
 
 
@@ -43,7 +43,7 @@ class MonteCarloSimulation(Observable[Resource["Sinogram | ListMode | ..."]]):
             )
             .switch_map(lambda results: merge(results))
             .switch_map(lambda root: analysis(root))
-            .switch_map(lambda sino: create_in_database(sino))
+            .switch_map(lambda sino: create(sino))
         )
 
     def _main(self):
@@ -68,13 +68,13 @@ def work_in_one_subdirectory(
 ):
     return (
         parallel(
-            [query(r).map(lambda f: cp(f, directory / f.name)) for r in required_files]
+            [query(r).switch_map(lambda f: cp(f, directory / f.name)) for r in required_files]
             + [mac_generator(directory, config)]
         )
         .switch_map(lambda files: submit(Gate(*files), Slurm("192.168.1.131")))
         .switch_map(
-            lambda slurm_id: slurm_watcher(slurm_id)
-        )  # maybe add this into submit func?
+            lambda slurm_id: slurm_watcher.filter(lambda complted: slurm_id in complted)
+        ).switch_map(lambda _: search_file('sino.h5')) # maybe add this into submit func?
     )
 
 
@@ -108,3 +108,5 @@ def run_a_lot_mc_simulations(
         ),
     )
 
+alotmc = run_a_lot_mc_simulations(...)
+submit(alotmc).subscribe_on(Slurm('1545'))

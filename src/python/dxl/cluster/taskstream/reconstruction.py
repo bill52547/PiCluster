@@ -13,8 +13,9 @@ def reconstruction(
     return sequential(
         lambda _: p.query(sinogram),
         lambda sinogram: cli.mkdir(work_directory).switch_map(
-            lambda d: {"directory": d, "sinogram": sinogram}
+            lambda d: of({"directory": d, "sinogram": sinogram})
         ),
+        lambda inputs: srf(inputs['direct ory'], inputs['sinogram'])
     )
 
 
@@ -89,6 +90,7 @@ def psf(
             ]
         ),
         lambda result: reconstruction(workdir, result[1], recon_config, result[0]),
+        p.create,
     )
 
 
