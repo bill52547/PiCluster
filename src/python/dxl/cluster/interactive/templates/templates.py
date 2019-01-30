@@ -34,7 +34,7 @@ query {
 query_conditional_read = """
 query {
   {{table_name}}(
-    where: { {{select}}: { {{operator}}: {{condition|safe}} }}
+    where: { {{select}}: { {{operator}}: "{{condition|safe}}" }}
   ){
     {% for i in returns %}{{i}}\n{% endfor %}
   }

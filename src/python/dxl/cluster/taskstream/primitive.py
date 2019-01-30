@@ -1,14 +1,14 @@
 import typing
-from dataclasses import dataclass
+# from dataclasses import dataclass
+import subprocess
+import attr
 from typing import Generic, List
 import rx
 
-from .rxpi import Observable, Observer
-
-T = typing.TypeVar("T")
+from rx import Observable, Observer
 
 
-@dataclass
+@attr.s(auto_attribs=True)
 class Resource(Generic[T]):  # TODO: carefully define normal object and Re
     """
     A resource which is queryable from database
@@ -18,7 +18,7 @@ class Resource(Generic[T]):  # TODO: carefully define normal object and Re
     primary_key: int
 
 
-@dataclass
+@attr.s(auto_attribs=True)
 class Request(Generic[T]):
     url: str
     body: str
@@ -36,15 +36,19 @@ class Table(Generic[T]):
     name: str
 
 
-def cli(command: str) -> Task[typing.List[str]]:
-    pass
-
-
 def func(fn: typing.Callable[[], T]) -> Task[T]:
-    pass
+    return Observable.defer(lambda: Observable.start(fn))
+
+
+def cli(command: str) -> Task[typing.List[str]]:
+    def cmd():
+        result = subprocess.run(command.split(" "), check=True, stdout=subprocess.PIPE)
+        return result.stdout.decode().split('\n')
+    return func(cmd)
 
 
 def request(request: Request[T]) -> Task[T]:
+
     pass
 
 
@@ -53,6 +57,7 @@ def query(resource: Resource[T]) -> Task[T]:
     Parse a url to a real resource, e.g. a Path, via query to database
     """
     pass
+
 
 def create(item: T) -> Resource[T]:
     "create a record in database for one item, e.g. a File"

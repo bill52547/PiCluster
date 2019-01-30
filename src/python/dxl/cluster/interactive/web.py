@@ -52,6 +52,9 @@ class Request:
     @classmethod
     def read(cls, table_name: str, select: str, condition: str, returns: Iterable[str], operator="_eq"):
         """select & condition can be none."""
+        def parse(response):
+            return [[row[key] for key in row] for row in response['data'][table_name]]
+
         if select is not None and condition is not None:
             j2_template = cls.j2_env.from_string(query_conditional_read)
             query = j2_template.render(table_name=table_name,
@@ -59,7 +62,7 @@ class Request:
                                        operator=operator,
                                        condition=condition,
                                        returns=returns)
-            return cls.run_query(query)
+            return parse(cls.run_query(query))
         else:
             j2_template = cls.j2_env.from_string(query_read)
             query = j2_template.render(table_name=table_name, returns=returns)
