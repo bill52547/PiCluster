@@ -51,7 +51,11 @@ class Request:
 
     @classmethod
     def read(cls, table_name: str, select: str, condition: str, returns: Iterable[str], operator="_eq"):
-        """select & condition can be none."""
+        """
+        Read from taskDB.
+
+        select & condition can be none.
+        """
         def parse(response):
             return [[row[key] for key in row] for row in response['data'][table_name]]
 

@@ -2,14 +2,16 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import contextlib
 
+from ..config.base import DBConfig
+
 
 class DataBase:
     def __init__(self,
-                 ip,
-                 user: str = 'postgres',
-                 passwd: str = 'mysecretpasswd',
-                 database: str = 'postgres',
-                 port: str = '8080'):
+                 ip: str = DBConfig.DB_IP,
+                 user: str = DBConfig.DB_USER,
+                 passwd: str = DBConfig.DB_PASSWD,
+                 database: str = DBConfig.DB_NAME,
+                 port: str = DBConfig.DB_PORT):
         self.user = user
         self.passwd = passwd
         self.database = database

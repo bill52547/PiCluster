@@ -10,7 +10,12 @@ def insert_all(db):
     procs = [
         ("make_subdir", ["pygate", "init", "subdir", "-n"]),
         ("bcast", ["pygate", "init", "bcast"]),
-        ("pygate_submit", ["pygate", "submit"])
+        ("pygate_submit", ["pygate", "submit"]),
+        ("h52lor", ["python", "listmode2lor.py"]),
+        ("h52sino", ["None"]),
+        ("listmodetxt2h5", ["python", "txt2h5.py"]),
+        ("root2listmodebintxt", ["bash", "root2bintxt.sh"])
+        # "sino_lor"    "{python,lor_sino.py,arg1_config,arg2_input,arg3_output,arg4_type}"
     ]
 
     for row in procs:

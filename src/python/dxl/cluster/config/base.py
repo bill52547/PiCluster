@@ -18,6 +18,7 @@ class DBConfig(Config):
 
     DEFAULT_CONFIG_FILE = './config.yml'
 
+    DB_NAME = 'postgres'
     DB_USER = 'postgres'
     DB_PASSWD = 'psql'
     DB_IP = '202.120.1.61'
@@ -29,7 +30,7 @@ class DBConfig(Config):
 
 
 class GraphQLConfig(Config):
-    GraphQL_IP = '192.168.1.185'
+    GraphQL_IP = '192.168.1.133'
     GraphQL_PORT = 8081
 
     GraphQL_URL = f"http://{GraphQL_IP}:{GraphQL_PORT}/v1alpha1/graphql"
@@ -38,28 +39,3 @@ class GraphQLConfig(Config):
 class ConfigFile(Config):
     FileName = "dxclusterConf.yaml"
     CwdConf = './'+FileName
-
-
-
-# _default = {
-#     'name': 'tasks',
-#     'use_web_api': True,
-#     'echo': False,
-#     'default_state': 'Created',
-#
-#     'host': '0.0.0.0',
-#     'ip': '192.168.1.212',
-#     'port': 23300,
-#     'debug': False,
-#     'version': 1,
-#     'base': '/'
-# }
-#
-#
-# class Config(UserDict):
-#     def __init__(self):
-#         super(__class__, self).__init__()
-#         self.data.update(_default)
-#
-#
-# config = Config()
