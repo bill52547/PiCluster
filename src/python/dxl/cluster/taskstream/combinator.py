@@ -1,10 +1,10 @@
 import typing
-from .primitive import Task
+from .primitive import func
 from functools import reduce
 
 
 def parallel(
-    tasks: typing.Sequence[Task], error_detectors: typeing.Sequence["ErrorDetector"] = []
+    tasks: typing.Sequence[func], error_detectors: typing.Sequence["ErrorDetector"] = []
 ):
     """
     wrap of rx operators merge
@@ -12,7 +12,7 @@ def parallel(
     return merge(*tasks, *[d(tasks) for d in error_detectors])
 
 
-def sequential(tasks_maker: typing.Callable[['T'], typing.Sequence[Task]]):
+def sequential(tasks_maker: typing.Callable[['T'], typing.Sequence[func]]):
     """
     """
     return reduce(lambda obs, maker: obs.switch_map(maker))

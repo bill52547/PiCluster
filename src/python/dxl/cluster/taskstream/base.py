@@ -7,7 +7,6 @@ class TaskBase(UserDict):
         super().__init__(kwargs)
 
 
-
 class taskStreamFactory:
     def __init__(self):
         self.tasks = []

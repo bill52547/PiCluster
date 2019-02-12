@@ -1,5 +1,5 @@
 from .rxpi import Observable, Observer
-from .combinator import squential
+from .combinator import sequential
 from .cli_tasks import mkdir, mv, cp
 from .primitive import Resource, query
 from typing import List

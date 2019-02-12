@@ -30,7 +30,7 @@ class DBConfig(Config):
 
 
 class GraphQLConfig(Config):
-    GraphQL_IP = '192.168.1.133'
+    GraphQL_IP = '192.168.1.185'
     GraphQL_PORT = 8081
 
     GraphQL_URL = f"http://{GraphQL_IP}:{GraphQL_PORT}/v1alpha1/graphql"
