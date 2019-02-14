@@ -43,12 +43,18 @@ class Request:
         def parse(response):
             return [[row[key] for key in row] for row in response['data'][table_name]]
 
+        def format_handler(s: str):
+            if (s[0] == '"' and s[-1:] == '"') or (s[0] == "'" and s[-1:] == "'"):
+                return s[1:-1]
+            else:
+                return s
+
         if select is not None and condition is not None:
             j2_template = cls.j2_env.from_string(query_conditional_read)
             query = j2_template.render(table_name=table_name,
                                        select=select,
                                        operator=operator,
-                                       condition=condition,
+                                       condition=format_handler(condition),
                                        returns=returns)
             return parse(cls.run_query(query))
         else:

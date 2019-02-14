@@ -26,7 +26,7 @@ class DBConfig(Config):
 
     FLASK_IP = '0.0.0.0'
     FLASK_PORT = 23300
-    FLASK_DEBUG = True
+    FLASK_DEBUG = False
 
 
 class GraphQLConfig(Config):

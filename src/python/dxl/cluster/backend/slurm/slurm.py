@@ -1,4 +1,5 @@
 import rx
+from rx import operators as ops
 import os
 
 import json
@@ -10,72 +11,12 @@ import shutil
 from jfs.directory import Directory
 
 from pathlib import Path
-from yaml import Loader, Dumper
-
+from yaml import Loader
 
 from dxl.cluster.config.urls import req_slurm
 from dxl.cluster.interactive.web import Request
 from dxl.cluster.database.transactions import deserialization
 from .schema import SlurmOp
-# from dxl.cluster.interactive.templates import env, master_task_config
-
-
-# class SlurmOp(AutoName):
-#     scontrol = auto()
-#     scancel = auto()
-#     squeue = auto()
-#     sbatch = auto()
-#
-#
-# class SlurmTaskState(enum.Enum):
-#     Canceled = "CA"
-#     Created = "PD"
-#     Running = "R"
-#     Suspend = "S"
-#     Completed = "CD"
-#     Failed = "F"
-#     TimeOut = "TO"
-#     NodeFault = "NF"
-#
-#
-# @attr.s(auto_attribs=True)
-# class SqueueRow:
-#     job_id: typing.Optional[int] = None
-#     partition: typing.Optional[str] = None
-#     name: typing.Optional[str] = None
-#     user: typing.Optional[str] = None
-#     status: typing.Optional[str] = None
-#     time: typing.Optional[str] = None
-#     nodes: typing.Optional[str] = None
-#     node_list: typing.Optional[str] = None
-#
-#     def __eq__(self, other):
-#         if isinstance(other, type(self)):
-#             self.job_id == other.job_id
-#         else:
-#             raise TypeError
-#
-#     def __hash__(self):
-#         return hash(self.job_id)
-#
-#
-# class SqueueRowSchema(ma.Schema):
-#     job_id = ma.fields.Integer(allow_none=False)
-#     partition = ma.fields.String(allow_none=True)
-#     name = ma.fields.String(allow_none=True)
-#     user = ma.fields.String(allow_none=True)
-#     status = ma.fields.String(allow_none=True)
-#     time = ma.fields.String(allow_none=True)
-#     nodes = ma.fields.String(allow_none=True)
-#     node_list = ma.fields.String(allow_none=True)
-#
-#
-# squeueRowSchema = SqueueRowSchema()
-
-
-# sq = (rx.Observable.interval(1*1000)#.take(10008)
-#       .map(lambda _: squeue())
-#       .map(lambda l: [deserialization(i).job_id for i in l]))
 
 
 def squeue():
@@ -86,9 +27,7 @@ def squeue():
 def sbatch(work_dir: Directory, file):
     arg = file
     _url = req_slurm(SlurmOp.sbatch.value, arg=arg, file=file, work_dir=work_dir)
-    # print(_url)
     result = requests.post(_url).json()
-    # print(result)
     return result['job_id']
 
 
@@ -124,18 +63,18 @@ def config_parser(config_dict):
 
 
 def url_parser(query_config):
-    all_inputs = []
+    # all_inputs = []
 
     for row in query_config:
-        # print(row)
         response = Request.read(table_name=row[0],
                                 select=row[1],
                                 condition='"'+str(row[2])+'"',
                                 returns=row[4])
-        for r in response['data'][row[0]]:
-            for k, v in r.items():
-                all_inputs.append(v)
-    return all_inputs
+        # print(response)
+        # for r in response:  #['data'][row[0]]:
+        #     for k, v in r.items():
+        #         all_inputs.append(v)
+    return response
 
 
 def input_loading(workdir, source):
@@ -185,10 +124,19 @@ def squeue_scanner(last, current):
     return result
 
 
-complete_queue = (rx.subjects.Subject.interval(1*1000) #.take(80)
-                  .map(lambda _: squeue())
-                  .map(lambda l: [deserialization(i).job_id for i in l])
-                  .scan(squeue_scanner, ([], []))
-                  .map(lambda x: x[1])
-                  .filter(lambda x: x!=[]))
+# complete_queue = (rx.subjects.Subject.interval(1*1000) #.take(80)
+#                   .map(lambda _: squeue())
+#                   .map(lambda l: [deserialization(i).job_id for i in l])
+#                   .scan(squeue_scanner, ([], []))
+#                   .map(lambda x: x[1])
+#                   .filter(lambda x: x!=[]))
 
+complete_queue = (
+    rx.interval(1.0).pipe(
+        ops.map(lambda _: squeue()),
+        ops.map(lambda l: [deserialization(i).job_id for i in l]),
+        ops.scan(squeue_scanner, ([], [])),
+        ops.map(lambda x: x[1]),
+        ops.filter(lambda x: x!=[])
+    )
+)

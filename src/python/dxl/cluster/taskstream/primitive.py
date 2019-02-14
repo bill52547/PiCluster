@@ -10,6 +10,7 @@ from rx import operators as ops
 from rx.concurrency import ThreadPoolScheduler
 
 from ..interactive.web import Request
+from ..config.graphql import GraphQLConfig
 
 
 optimal_thread_count = multiprocessing.cpu_count()
@@ -23,7 +24,7 @@ def func(fn: Callable) -> Observable:
     """
     Turn a function to Observable.
     """
-    return rx.create(fn).pipe(ops.subscribe_on(pool_scheduler))
+    return rx.create(fn)#.pipe(ops.subscribe_on(pool_scheduler))
 
 
 @attr.s(auto_attribs=True)
@@ -62,9 +63,9 @@ def cli(body: str) -> func:
     def cmd(observer, scheduler, body=body):
         try:
             result = subprocess.run(body.split(" "), check=True, stdout=subprocess.PIPE).stdout.decode().split('\n')
-            del result[-1]
-            observer.on_next(result)
-            observer.on_complete()
+            # del result[-1]
+            observer.on_next(result[:-1])
+            observer.on_completed()
         except FileNotFoundError as err:
             observer.on_error(f"CMD error! {err}")
     return func(partial(cmd, body=body))
@@ -77,9 +78,20 @@ def query(resource: Resource) -> func:
     return Query(resource)().pipe(ops.flat_map(lambda x: x))
 
 
-# def create(item: T, table_name: str) -> Resource:
-#     "create a record in database for one item, e.g. a File"
-#     return Resource(table_name='ioCollections', primary_key=1)
+def create(item: T, table_name: str) -> Resource:
+    "create a record in database for one item, e.g. a File"
+    if isinstance(item, dict):
+        pass
+    else:
+        try:
+            item = attr.asdict(item)
+        except Exception as e:
+            print(f"Type error, not supported item. {e}")
+
+    result = Request.insert(table_name=table_name, inserts=attr.asdict(item))
+    result_id = GraphQLConfig.insert_returning_parser(result)
+
+    return Resource(table_name=table_name, primary_key=result_id)
 
 
 def submit(task: func, backend: "Scheduler"):
@@ -88,5 +100,7 @@ def submit(task: func, backend: "Scheduler"):
     thus, currently, we need use submit(a_task, Slurm('192.168.1.131')).subscribe()
     in the future, we may use a_task.observe_on(Slurm('192.168.1.131')).subscribe() or a_task.subscribe_on(Slurm('ip'))
     """
+
+    Request.insert()
     pass
 
