@@ -13,40 +13,59 @@ from jfs.directory import Directory
 from pathlib import Path
 from yaml import Loader
 
-from dxl.cluster.config.urls import req_slurm
+# from dxl.cluster.config.urls import req_slurm
 from dxl.cluster.interactive.web import Request
 from dxl.cluster.database.transactions import deserialization
 from .schema import SlurmOp
+from ..base import Backend
+from ...config.slurm import SlurmConfig
 
 
-def squeue():
-    response = requests.get(req_slurm(SlurmOp.squeue.value)).text
-    return json.loads(response)
+class Slurm(Backend):
+    def __init__(self, ip, port, api_version, *args, **kwargs):
+        self.ip = ip
+        self.port = port
+        self.api_version = api_version
 
+    def url(self, *arg, **kwargs):
+        url = f'http://{self.ip}:{self.port}/api/v{self.api_version}/slurm/{arg[0]}?'
+        kvs = []
+        for k, v in kwargs.items():
+            kvs.append(f"{k}={v}")
+        return url + "&".join(kvs)
 
-def sbatch(work_dir: Directory, file):
-    arg = file
-    _url = req_slurm(SlurmOp.sbatch.value, arg=arg, file=file, work_dir=work_dir)
-    result = requests.post(_url).json()
-    return result['job_id']
+    def squeue(self):
+        response = requests.get(self.url(SlurmOp.squeue.value)).text
+        return json.loads(response)
 
+    def submit(self, task: 'Task'):
+        def _sbatch():
+            work_dir = task.workdir
+            file = task.script
 
-def scancel(id: int):
-    if id is None:
-        raise ValueError
-    requests.delete(req_slurm(SlurmOp.scancel.value, job_id=id))
-
-
-def scontrol(id: int):
-    def query(observer):
-        try:
-            result = requests.get(req_slurm(SlurmOp.scontrol.value, job_id=id)).json()
-            observer.on_next(result['job_state'])
-            observer.on_completed()
-        except:
-            pass
-
-    return rx.Observable.create(query)
+            arg = file
+            _url = self.url(SlurmOp.sbatch.value, arg=arg, file=file, work_dir=work_dir)
+            result = requests.post(_url).json()
+            return result['job_id']
+        return _sbatch()
+    #
+    #
+    # def scancel(self, id: int):
+    #     if id is None:
+    #         raise ValueError
+    #     requests.delete(req_slurm(SlurmOp.scancel.value, job_id=id))
+    #
+    #
+    # def scontrol(self, id: int):
+    #     def query(observer):
+    #         try:
+    #             result = requests.get(req_slurm(SlurmOp.scontrol.value, job_id=id)).json()
+    #             observer.on_next(result['job_state'])
+    #             observer.on_completed()
+    #         except:
+    #             pass
+    #
+    #     return rx.Observable.create(query)
 
 
 def config_parser(config_dict):
@@ -63,17 +82,11 @@ def config_parser(config_dict):
 
 
 def url_parser(query_config):
-    # all_inputs = []
-
     for row in query_config:
         response = Request.read(table_name=row[0],
                                 select=row[1],
                                 condition='"'+str(row[2])+'"',
                                 returns=row[4])
-        # print(response)
-        # for r in response:  #['data'][row[0]]:
-        #     for k, v in r.items():
-        #         all_inputs.append(v)
     return response
 
 
@@ -140,3 +153,7 @@ complete_queue = (
         ops.filter(lambda x: x!=[])
     )
 )
+
+SlurmSjtu = Slurm(ip=SlurmConfig.RestSlurm_IP,
+                  port=SlurmConfig.RestSlurm_Port,
+                  api_version=SlurmConfig.Api_Version)

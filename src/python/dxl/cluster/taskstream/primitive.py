@@ -11,10 +11,11 @@ from rx.concurrency import ThreadPoolScheduler
 
 from ..interactive.web import Request
 from ..config.graphql import GraphQLConfig
+from ..backend.slurm.slurm import SlurmSjtu
 
 
-optimal_thread_count = multiprocessing.cpu_count()
-pool_scheduler = ThreadPoolScheduler(optimal_thread_count)
+# optimal_thread_count = multiprocessing.cpu_count()
+# pool_scheduler = ThreadPoolScheduler(optimal_thread_count)
 
 
 T = typing.TypeVar("T")
@@ -24,7 +25,7 @@ def func(fn: Callable) -> Observable:
     """
     Turn a function to Observable.
     """
-    return rx.create(fn)#.pipe(ops.subscribe_on(pool_scheduler))
+    return rx.create(fn) #.pipe(ops.subscribe_on(pool_scheduler))
 
 
 @attr.s(auto_attribs=True)
@@ -63,7 +64,6 @@ def cli(body: str) -> func:
     def cmd(observer, scheduler, body=body):
         try:
             result = subprocess.run(body.split(" "), check=True, stdout=subprocess.PIPE).stdout.decode().split('\n')
-            # del result[-1]
             observer.on_next(result[:-1])
             observer.on_completed()
         except FileNotFoundError as err:
@@ -94,13 +94,18 @@ def create(item: T, table_name: str) -> Resource:
     return Resource(table_name=table_name, primary_key=result_id)
 
 
-def submit(task: func, backend: "Scheduler"):
+def submit(task: func, backend: "Scheduler"=SlurmSjtu):
     """
     Submit a **Task** to a scheduler, in the future, we may directly extend rx.Scheduler to fit our use.
     thus, currently, we need use submit(a_task, Slurm('192.168.1.131')).subscribe()
     in the future, we may use a_task.observe_on(Slurm('192.168.1.131')).subscribe() or a_task.subscribe_on(Slurm('ip'))
     """
+    def _submit(observer, scheduler):
+        try:
+            result = backend.submit(task)
+            observer.on_next(result)
+            observer.on_completed()
+        except Exception as e:
+            observer.on_error(f"Submitting error! {e}")
 
-    Request.insert()
-    pass
-
+    return func(partial(_submit))

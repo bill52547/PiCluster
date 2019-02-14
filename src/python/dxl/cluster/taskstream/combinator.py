@@ -1,6 +1,8 @@
 import typing
 from .primitive import func
 from functools import reduce
+from rx import merge
+from rx import operators as ops
 
 
 def parallel(
@@ -15,7 +17,7 @@ def parallel(
 def sequential(tasks_maker: typing.Callable[['T'], typing.Sequence[func]]):
     """
     """
-    return reduce(lambda obs, maker: obs.switch_map(maker))
+    return ops.reduce(lambda obs, maker: obs.switch_map(maker))
 
 
 def average_time_detector(ratio: float = 3.0) -> "ErrorDetector":
