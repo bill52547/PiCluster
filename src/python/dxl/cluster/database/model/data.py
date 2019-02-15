@@ -4,7 +4,7 @@ from .schema import backends, ioCollections, procedures, macs, phantomHeaders
 def insert_all(db):
     conn = db.get_or_create_engine().connect()
 
-    for item in ['slurm', 'bare']:
+    for item in ['slurm', 'shell']:
         conn.execute(backends.insert().values(backend=item))
 
     procs = [

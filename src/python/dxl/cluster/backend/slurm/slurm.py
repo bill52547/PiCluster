@@ -157,3 +157,4 @@ complete_queue = (
 SlurmSjtu = Slurm(ip=SlurmConfig.RestSlurm_IP,
                   port=SlurmConfig.RestSlurm_Port,
                   api_version=SlurmConfig.Api_Version)
+

@@ -39,6 +39,8 @@ tasks = Table(
     Column('state_on_backend', Enum(TaskState, name='state_enum', metadata=meta)),
     Column('worker', String),
     Column('script', String),
+    Column('inputs', postgresql.ARRAY(String, dimensions=1)),
+    Column('outputs', postgresql.ARRAY(String, dimensions=1)),
     Column('fn', String)
 )
 
@@ -119,6 +121,8 @@ class Task:
     state_on_backend: TaskState = TaskState.Created
     worker: typing.Optional[str] = None
     script: typing.Optional[str] = None
+    inputs: typing.List[str] = ()
+    outputs: typing.List[str] = ()
     fn: typing.Optional[str] = None
 
 
@@ -177,6 +181,8 @@ class TasksSchema(ma.Schema):
     state_on_backend = ma.fields.String(allow_none=True)
     worker = ma.fields.String(allow_none=True)
     script = ma.fields.String(allow_none=True)
+    inputs = ma.fields.List(ma.fields.String())
+    outputs = ma.fields.List(ma.fields.String())
     fn = ma.fields.String(allow_none=True)
 
 

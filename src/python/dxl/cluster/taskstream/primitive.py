@@ -12,6 +12,7 @@ from rx.concurrency import ThreadPoolScheduler
 from ..interactive.web import Request
 from ..config.graphql import GraphQLConfig
 from ..backend.slurm.slurm import SlurmSjtu
+from ..database.model.schema import Task
 
 
 # optimal_thread_count = multiprocessing.cpu_count()
@@ -60,6 +61,16 @@ class Table(Generic[T]):
     name: str
 
 
+def task(t: Task) -> func:
+    def _task(observer, scheduler):
+        try:
+            observer.on_next(t)
+            observer.on_completed()
+        except Exception as e:
+            observer.on_error(e)
+    return rx.create(_task)
+
+
 def cli(body: str) -> func:
     def cmd(observer, scheduler, body=body):
         try:
@@ -94,18 +105,34 @@ def create(item: T, table_name: str) -> Resource:
     return Resource(table_name=table_name, primary_key=result_id)
 
 
-def submit(task: func, backend: "Scheduler"=SlurmSjtu):
+def submit(task: func, backend: "Scheduler"=SlurmSjtu) -> "Observable['output']":
     """
     Submit a **Task** to a scheduler, in the future, we may directly extend rx.Scheduler to fit our use.
     thus, currently, we need use submit(a_task, Slurm('192.168.1.131')).subscribe()
     in the future, we may use a_task.observe_on(Slurm('192.168.1.131')).subscribe() or a_task.subscribe_on(Slurm('ip'))
     """
-    def _submit(observer, scheduler):
+    def _on_submit(observer, scheduler):
+        def update_id_on_backend(t: tuple("'Task', 'id_on_backend'")) -> Task:
+            t[0].id_on_backend = t[1]
+            return t[0]
+
+        def _is_completed(t: Task):
+
+            pass
+
         try:
-            result = backend.submit(task)
+            result = task.pipe(
+                # ops.flat_map(lambda t: t),
+                ops.map(lambda t: (t, t)),
+                ops.map(lambda t: (t[0], backend.submit(t[1]))),
+                ops.map(update_id_on_backend),
+                ops.map(_is_completed),
+                ops.map()
+            )
+
             observer.on_next(result)
             observer.on_completed()
         except Exception as e:
             observer.on_error(f"Submitting error! {e}")
 
-    return func(partial(_submit))
+    return func(partial(_on_submit))
