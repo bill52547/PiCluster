@@ -2,31 +2,34 @@ import typing
 from typing import Callable, Generic
 import attr
 import subprocess
-import multiprocessing
-from functools import partial
+import os
+from pathlib import Path
+from functools import partial, reduce
 import rx
 from rx import Observable
 from rx import operators as ops
-from rx.concurrency import ThreadPoolScheduler
 
 from ..interactive.web import Request
 from ..config.graphql import GraphQLConfig
 from ..backend.slurm.slurm import SlurmSjtu
-from ..database.model.schema import Task
-
-
-# optimal_thread_count = multiprocessing.cpu_count()
-# pool_scheduler = ThreadPoolScheduler(optimal_thread_count)
+from ..database.model.schema import Task, TaskState
 
 
 T = typing.TypeVar("T")
+
+
+def tap(fn):
+    def result(x):
+        fn(x)
+        return x
+    return ops.map(result)
 
 
 def func(fn: Callable) -> Observable:
     """
     Turn a function to Observable.
     """
-    return rx.create(fn) #.pipe(ops.subscribe_on(pool_scheduler))
+    return rx.create(fn)
 
 
 @attr.s(auto_attribs=True)
@@ -105,34 +108,51 @@ def create(item: T, table_name: str) -> Resource:
     return Resource(table_name=table_name, primary_key=result_id)
 
 
-def submit(task: func, backend: "Scheduler"=SlurmSjtu) -> "Observable['output']":
+def submit(task: Task, backend: "Scheduler"=SlurmSjtu) -> "Observable['output']":
     """
     Submit a **Task** to a scheduler, in the future, we may directly extend rx.Scheduler to fit our use.
     thus, currently, we need use submit(a_task, Slurm('192.168.1.131')).subscribe()
     in the future, we may use a_task.observe_on(Slurm('192.168.1.131')).subscribe() or a_task.subscribe_on(Slurm('ip'))
     """
-    def _on_submit(observer, scheduler):
-        def update_id_on_backend(t: tuple("'Task', 'id_on_backend'")) -> Task:
-            t[0].id_on_backend = t[1]
-            return t[0]
+    def _submit(obs, scheduler):
+        id_on_backend = int(backend.submit(task))
+        if id_on_backend is not None:
+            obs.on_next(attr.evolve(task,
+                                    id_on_backend=id_on_backend,
+                                    state=TaskState.Running,
+                                    state_on_backend=TaskState.Running))
+            obs.on_completed()
+            return
+        raise Exception
 
-        def _is_completed(t: Task):
+    def _on_running(task: Task):
+        slurm_id = task.id_on_backend
+        return SlurmSjtu.completed().pipe(ops.filter(lambda completed: slurm_id in completed),
+                                          ops.first(),
+                                          ops.map(lambda _: task))
 
-            pass
+    def _on_completed(task):
+        return attr.evolve(task, state=TaskState.Completed, state_on_backend=TaskState.Completed)
 
-        try:
-            result = task.pipe(
-                # ops.flat_map(lambda t: t),
-                ops.map(lambda t: (t, t)),
-                ops.map(lambda t: (t[0], backend.submit(t[1]))),
-                ops.map(update_id_on_backend),
-                ops.map(_is_completed),
-                ops.map()
-            )
+    def _on_return(task):
+        outputs = task.outputs
+        cwd = os.getcwd()
 
-            observer.on_next(result)
-            observer.on_completed()
-        except Exception as e:
-            observer.on_error(f"Submitting error! {e}")
+        def exists(item):
+            item_path = Path(cwd + "/" + item)
+            if item_path.is_dir() or item_path.is_file():
+                return True
+            return False
 
-    return func(partial(_on_submit))
+        if len(outputs) > 0:
+            if reduce(lambda x, y: x or y, list(map(exists, outputs))):
+                return list(map(lambda item: cwd+"/"+item, outputs))
+            else:
+                raise FileNotFoundError
+        return []
+
+    return rx.create(_submit).pipe(
+            ops.flat_map(_on_running),
+            ops.map(_on_completed),
+            ops.map(_on_return)
+        )

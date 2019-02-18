@@ -1,23 +1,18 @@
 import rx
 from rx import operators as ops
 import os
-
 import json
 import yaml
-
 import requests
-
 import shutil
-from jfs.directory import Directory
-
 from pathlib import Path
 from yaml import Loader
 
-# from dxl.cluster.config.urls import req_slurm
 from dxl.cluster.interactive.web import Request
 from dxl.cluster.database.transactions import deserialization
 from .schema import SlurmOp
 from ..base import Backend
+from ...database.model.schema import Task
 from ...config.slurm import SlurmConfig
 
 
@@ -34,9 +29,44 @@ class Slurm(Backend):
             kvs.append(f"{k}={v}")
         return url + "&".join(kvs)
 
-    def squeue(self):
+    def _squeue(self):
         response = requests.get(self.url(SlurmOp.squeue.value)).text
         return json.loads(response)
+
+    def _scancel(self, id: int):
+        if id is None:
+            raise ValueError
+        return requests.delete(self.url(SlurmOp.scancel.value, job_id=id)).text
+
+    def _scontrol(self, id: int):
+        def query(observer, scheduler):
+            try:
+                result = requests.get(self.url(SlurmOp.scontrol.value, job_id=id)).json()
+                observer.on_next(result['job_state'])
+                observer.on_completed()
+            except:
+                pass
+        return rx.create(query)
+
+    def queue(self):
+        return rx.interval(1.0).pipe(ops.map(lambda _: self._squeue()))
+
+    def completed(self):
+        def squeue_scanner(last, current):
+            last_running, _ = last
+            result = (current, [i for i in last_running if i not in current])
+            return result
+
+        complete_queue = (
+            rx.interval(1.0).pipe(
+                ops.map(lambda _: self._squeue()),
+                ops.map(lambda l: [deserialization(i).job_id for i in l]),
+                ops.scan(squeue_scanner, ([], [])),
+                ops.map(lambda x: x[1]),
+                ops.filter(lambda x: x != [])
+            )
+        )
+        return complete_queue
 
     def submit(self, task: 'Task'):
         def _sbatch():
@@ -48,24 +78,14 @@ class Slurm(Backend):
             result = requests.post(_url).json()
             return result['job_id']
         return _sbatch()
-    #
-    #
-    # def scancel(self, id: int):
-    #     if id is None:
-    #         raise ValueError
-    #     requests.delete(req_slurm(SlurmOp.scancel.value, job_id=id))
-    #
-    #
-    # def scontrol(self, id: int):
-    #     def query(observer):
-    #         try:
-    #             result = requests.get(req_slurm(SlurmOp.scontrol.value, job_id=id)).json()
-    #             observer.on_next(result['job_state'])
-    #             observer.on_completed()
-    #         except:
-    #             pass
-    #
-    #     return rx.Observable.create(query)
+
+    def cancel(self, task: 'Task'):
+        if isinstance(task, Task):
+            response = self._scancel(task.id_on_backend)
+        elif isinstance(task, int):
+            response = self._scancel(task)
+
+        return str(response)
 
 
 def config_parser(config_dict):
@@ -137,16 +157,9 @@ def squeue_scanner(last, current):
     return result
 
 
-# complete_queue = (rx.subjects.Subject.interval(1*1000) #.take(80)
-#                   .map(lambda _: squeue())
-#                   .map(lambda l: [deserialization(i).job_id for i in l])
-#                   .scan(squeue_scanner, ([], []))
-#                   .map(lambda x: x[1])
-#                   .filter(lambda x: x!=[]))
-
 complete_queue = (
     rx.interval(1.0).pipe(
-        ops.map(lambda _: squeue()),
+        ops.map(lambda _: SlurmSjtu.queue()),
         ops.map(lambda l: [deserialization(i).job_id for i in l]),
         ops.scan(squeue_scanner, ([], [])),
         ops.map(lambda x: x[1]),
