@@ -33,7 +33,7 @@ class MonteCarloSimulation:
         self.required_files = required_files
         self.nb_subtasks = nb_subtasks
         # self.config = config
-        # self.observable = self._main()
+
         self.sub_task_script = 'run.sh'
         self.merger_task_scirpt = 'post.sh'
 
@@ -44,6 +44,8 @@ class MonteCarloSimulation:
         self.scheduler = scheduler
 
         self.backend = backend
+
+        self.observable = self._main()
 
     def _sub_tasks(self):
         return (sequential([mkdir_n_return(self.work_directory),
@@ -60,18 +62,20 @@ class MonteCarloSimulation:
             self._submit_sub_task
         ])
 
-    def _submit_merger_task(self):
-        def _submit_merge_task():
-            return Task(workdir=self.work_directory,
+    def _merger_task(self):
+        def _submit_merge_task(work_directory):
+            task = Task(workdir=work_directory,
                         script=self.merger_task_scirpt,
                         fn=self.fn,
                         outputs=self.merger_task_outputs,
                         scheduler=self.scheduler)
+            return submit(task=task, backend=self.backend)
 
-
-
-
-        return sequential([])
+        return sequential([
+            rx.of(self.work_directory),
+            self.load_required_files_to_directory,
+            _submit_merge_task
+        ])
 
     def _submit_sub_task(self, work_dir: str):
         def _sub_task():
@@ -81,7 +85,6 @@ class MonteCarloSimulation:
                         outputs=self.sub_task_outputs,
                         scheduler=self.scheduler)
 
-        # def _submit(self, work_dir):
         task = _sub_task()
         return submit(task=task, backend=self.backend)
 
@@ -95,8 +98,8 @@ class MonteCarloSimulation:
             rx.of(directory)
         ])).pipe(ops.last())
 
-    # def _main(self):
-    #     return sequential([self._sub_tasks(), self._merger_task()])
+    def _main(self):
+        return sequential([self._sub_tasks(), lambda _: self._merger_task()])
 
 
 def make_sub_directories(
