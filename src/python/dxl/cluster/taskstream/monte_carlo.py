@@ -1,6 +1,6 @@
 from pathlib import Path
 from .cli_tasks import mkdir, mv, cp, mkdir_if_not_exist, mkdir_n_return
-from .primitive import Resource, Query, submit, tap
+from .primitive import Resource, Query, submit, cli, tap
 from typing import List
 from .combinator import parallel, sequential, average_time_detector
 from rx import operators as ops
@@ -40,7 +40,7 @@ class MonteCarloSimulation:
         self.fn = 'monteCarlo_simu_on_Gate@7.2'
 
         self.sub_task_outputs = ["result.root"]
-        self.merger_task_outputs = ["result.root"]
+        self.merger_task_output = "result.root"
         self.scheduler = scheduler
 
         self.backend = backend
@@ -62,20 +62,22 @@ class MonteCarloSimulation:
             self._submit_sub_task
         ])
 
-    def _merger_task(self):
-        def _submit_merge_task(work_directory):
-            task = Task(workdir=work_directory,
-                        script=self.merger_task_scirpt,
+    def _merger_task(self, sub_outputs):
+        def _submit_merge_task():
+            task = Task(workdir=self.work_directory,
+                        script="hadd_command",
                         fn=self.fn,
-                        outputs=self.merger_task_outputs,
+                        outputs=self.merger_task_output,
                         scheduler=self.scheduler)
-            return submit(task=task, backend=self.backend)
-
-        return sequential([
-            rx.of(self.work_directory),
-            self.load_required_files_to_directory,
-            _submit_merge_task
-        ])
+            # return submit(task=task, backend=self.backend)
+            print(f"DEBUG task: {task}, sub_outputs: {sub_outputs}")
+            return hadd(hadd_output=task.workdir+"/"+task.outputs, sub_outputs=sub_outputs)
+        return _submit_merge_task()
+        # return sequential([
+        #     # rx.of(self.work_directory),
+        #     # self.load_required_files_to_directory,
+        #     _submit_merge_task
+        # ])
 
     def _submit_sub_task(self, work_dir: str):
         def _sub_task():
@@ -99,7 +101,7 @@ class MonteCarloSimulation:
         ])).pipe(ops.last())
 
     def _main(self):
-        return sequential([self._sub_tasks(), lambda _: self._merger_task()])
+        return self._sub_tasks().pipe(tap(print), ops.reduce(lambda x,y: x+y), ops.flat_map(self._merger_task))
 
 
 def make_sub_directories(
@@ -113,6 +115,12 @@ def make_sub_directories(
         root = Path(root)
     return [root / f"{prefix}.{i}" for i in range(nb_sub_directories)]
 
+
+def hadd(sub_outputs: list, hadd_output: str):
+    def to_string(l):
+        return " ".join(l)
+    print(f"srun hadd {hadd_output} {to_string(sub_outputs)}")
+    return cli(f"srun hadd {hadd_output} {to_string(sub_outputs)}")
 
 # def create_sub_directories_via_slurm():
 #     t = make_sub_directories("./some/path", 10, "slurm_sub")
