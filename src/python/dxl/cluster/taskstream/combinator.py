@@ -14,10 +14,12 @@ def parallel(
     return merge(*tasks, *[d(tasks) for d in error_detectors])
 
 
-def sequential(tasks_maker: typing.Callable[['T'], typing.Sequence[func]]):
+def sequential(seq: "List[submit]"):
     """
+    usage:
+    parallel([submit_task_1, submit_task_2])
     """
-    return ops.reduce(lambda obs, maker: obs.switch_map(maker))
+    return reduce(lambda prev, nxt: prev.pipe(ops.flat_map(nxt)), seq)
 
 
 def average_time_detector(ratio: float = 3.0) -> "ErrorDetector":

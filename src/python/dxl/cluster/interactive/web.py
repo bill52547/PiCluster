@@ -43,6 +43,19 @@ class Request:
         def parse(response):
             return [[row[key] for key in row] for row in response['data'][table_name]]
 
+        def flat_list(l: "nested_list") -> "List[T]":
+            result = []
+
+            def _flatten(l):
+                for item in l:
+                    if isinstance(item, list):
+                        _flatten(item)
+                    else:
+                        result.append(item)
+
+            _flatten(l)
+            return result
+
         def format_handler(s: str):
             if (s[0] == '"' and s[-1:] == '"') or (s[0] == "'" and s[-1:] == "'"):
                 return s[1:-1]
@@ -56,7 +69,7 @@ class Request:
                                        operator=operator,
                                        condition=format_handler(condition),
                                        returns=returns)
-            return parse(cls.run_query(query))
+            return flat_list(parse(cls.run_query(query)))
         else:
             j2_template = cls.j2_env.from_string(query_read)
             query = j2_template.render(table_name=table_name, returns=returns)

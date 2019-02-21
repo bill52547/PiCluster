@@ -40,24 +40,31 @@ class Resource(Generic[T]):  # TODO: carefully define normal object and Re
 
     table_name: str
     primary_key: int
+    returns: list
 
 
 class Query(Request):
-    def __init__(self, body, url=None):
+    """
+    Parse a url to a real resource, e.g. a Path, via query to database
+
+    usage:
+    Query.from_resource(Resource(table_name='ioCollections', primary_key=1)).subscribe(print)
+    """
+    def __init__(self, url=None):
         if url is not None:
             self.url = url
         else:
             self.url = super().url()
-        self.body = body
 
     def url(self):
         return self.url
 
-    def __call__(self) -> func:
-        return rx.of(Request.read(table_name=self.body.table_name,
+    @classmethod
+    def from_resource(cls, resource: Resource) -> func:
+        return rx.of(Request.read(table_name=resource.table_name,
                                   select='id',
-                                  condition=self.body.primary_key,
-                                  returns=['url']))
+                                  condition=str(resource.primary_key),
+                                  returns=resource.returns))
 
 
 class Table(Generic[T]):
@@ -85,11 +92,15 @@ def cli(body: str) -> func:
     return func(partial(cmd, body=body))
 
 
-def query(resource: Resource) -> func:
-    """
-    Parse a url to a real resource, e.g. a Path, via query to database
-    """
-    return Query(resource)().pipe(ops.flat_map(lambda x: x))
+def is_file(file: "URL") -> bool:
+    def _is_file(observer, scheduler):
+        try:
+            f = Path(file)
+            observer.on_next(f.is_file())
+            observer.on_completed()
+        except Exception as e:
+            observer.on_error(f"{f} is not a url.")
+    return rx.create(_is_file)
 
 
 def create(item: T, table_name: str) -> Resource:
@@ -136,19 +147,19 @@ def submit(task: Task, backend: "Scheduler"=SlurmSjtu) -> "Observable['output']"
 
     def _on_return(task):
         outputs = task.outputs
-        cwd = os.getcwd()
+        work_dir = task.workdir
 
         def exists(item):
-            item_path = Path(cwd + "/" + item)
+            item_path = Path(str(work_dir) + "/" + str(item))
             if item_path.is_dir() or item_path.is_file():
                 return True
             return False
 
         if len(outputs) > 0:
             if reduce(lambda x, y: x or y, list(map(exists, outputs))):
-                return list(map(lambda item: cwd+"/"+item, outputs))
+                return list(map(lambda item: str(work_dir)+"/"+str(item), outputs))
             else:
-                raise FileNotFoundError
+                raise FileNotFoundError(f"One or more excepted outputs in {outputs} not found.")
         return []
 
     return rx.create(_submit).pipe(

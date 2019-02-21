@@ -76,7 +76,13 @@ class Slurm(Backend):
             arg = file
             _url = self.url(SlurmOp.sbatch.value, arg=arg, file=file, work_dir=work_dir)
             result = requests.post(_url).json()
-            return result['job_id']
+
+            try:
+                result = int(result['job_id'])
+            except Exception as e:
+                print(f"Error!, ***{e}*** sbatch error, expected slurm_id, got {result}")
+
+            return result
         return _sbatch()
 
     def cancel(self, task: 'Task'):

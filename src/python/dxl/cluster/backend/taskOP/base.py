@@ -8,21 +8,21 @@ from functools import partial
 import subprocess
 
 
-simple_callback = lambda: "Done"
+# simple_callback = lambda: "Done"
 
 
 # def op_factory(op):
 #     return rx.Observable.defer(lambda: rx.Observable.start(op))
 
 
-def op_repeat(task, n):
-    if n == 1:
-        return task
-    return task.switch_map(lambda x: op_repeat(task, n-1))
-
-
-def op_join(task1, task2):
-    return task1.switch_map(lambda x: task2)
+# def op_repeat(task, n):
+#     if n == 1:
+#         return task
+#     return task.switch_map(lambda x: op_repeat(task, n-1))
+#
+#
+# def op_join(task1, task2):
+#     return task1.switch_map(lambda x: task2)
 
 
 # def run_script(cmd, workdir, callback=simple_callback):
