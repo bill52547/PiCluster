@@ -48,16 +48,25 @@ def mkdir_if_not_exist(target: "Path") -> 'func[Resource["Path"]]':
     return mkdir_n_return(target)
 
 
-def cp(source: "File", target: "Path") -> 'func[Resource["File"]]':
-    try:
-        source = Path(source)
-        target = Path(target)
-        if source.is_file() and target.is_dir():
-            return cli(f"cp {str(source)} {str(target)}")
-        else:
-            raise ValueError
-    except Exception as e:
-        print(e)
+def cp(source: "url", target: "url") -> 'func[Resource["File"]]':
+    if Path(source).is_file() and Path(target).is_dir():
+        return cli(f"cp {str(source)} {str(target)}")
+    else:
+        raise ValueError(f"Resource: {source} is not a file, or target {target} is not a dir.")
+
+# def cp(source: "url", target: "url") -> 'func[Resource["File"]]':
+#     try:
+#         source = Path(source)
+#         target = Path(target)
+#         print(f"DEBUG: primitive.cp: source {source} isfile: {source.is_file()}, target: {traget} is_dir: {target.is_dir()}")
+#
+#         if source.is_file() and target.is_dir():
+#
+#             return cli(f"cp {str(source)} {str(target)}")
+#         else:
+#             raise ValueError(f"Resource: {source} is not a file, or target {target} is not a dir.")
+#     except Exception as e:
+#         print(e)
 
 
 def rm(target: "File") -> 'func[Resource["File"]]':
