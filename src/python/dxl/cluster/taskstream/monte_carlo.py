@@ -96,7 +96,7 @@ class MonteCarloSimulation:
         return parallel(tasks=[_load_one_required_resource(resource) for resource in self.required_files])
 
     def _main(self):
-        return self._sub_tasks().pipe(tap(print), ops.flat_map(self._merger_task))
+        return self._sub_tasks().pipe(ops.flat_map(self._merger_task))
 
 
 def make_sub_directories(
