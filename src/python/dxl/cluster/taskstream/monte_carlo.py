@@ -10,7 +10,7 @@ from ..database.model.schema import Task
 import arrow
 
 
-# TODO: pygate mac generator not easy to use
+# TODO:
 # def mac_generator(work_directory, config: "JSON/Dict") -> Observable[Resource[File]]:
 #     return (
 #         mkdir_if_not_exist(work_directory)
