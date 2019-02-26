@@ -54,20 +54,6 @@ def cp(source: "url", target: "url") -> 'func[Resource["File"]]':
     else:
         raise ValueError(f"Resource: {source} is not a file, or target {target} is not a dir.")
 
-# def cp(source: "url", target: "url") -> 'func[Resource["File"]]':
-#     try:
-#         source = Path(source)
-#         target = Path(target)
-#         print(f"DEBUG: primitive.cp: source {source} isfile: {source.is_file()}, target: {traget} is_dir: {target.is_dir()}")
-#
-#         if source.is_file() and target.is_dir():
-#
-#             return cli(f"cp {str(source)} {str(target)}")
-#         else:
-#             raise ValueError(f"Resource: {source} is not a file, or target {target} is not a dir.")
-#     except Exception as e:
-#         print(e)
-
 
 def rm(target: "File") -> 'func[Resource["File"]]':
     try:

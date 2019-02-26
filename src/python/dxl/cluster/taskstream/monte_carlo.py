@@ -3,6 +3,7 @@ from .cli_tasks import mkdir, mv, cp, mkdir_if_not_exist, mkdir_n_return
 from .primitive import Resource, Query, submit, cli, tap
 from typing import List
 from .combinator import parallel, sequential, parallel_with_error_detect
+from ..backend.slurm.slurm import SlurmSjtu
 from rx import operators as ops
 from functools import partial
 import rx
@@ -22,29 +23,25 @@ import arrow
 class MonteCarloSimulation:
     def __init__(
             self,
-            work_directory,
-            required_files: 'List[Resource["File"]]',
-            nb_subtasks,
-            # config,
-            scheduler,
-            backend
+            work_directory: "Path|str",
+            required_resources: 'List[Resource["File"]]',
+            nb_subtasks: int,
+            scheduler="slurm",
+            backend=SlurmSjtu,
+            fn='monteCarlo_simu_on_Gate@7.2',
+            sub_task_outputs=["result.root"],
+            merger_task_output="result.root",
+            sub_task_script='run.sh'
     ):
         self.work_directory = work_directory
-        self.required_files = required_files
+        self.required_files = required_resources
         self.nb_subtasks = nb_subtasks
-        # self.config = config
-
-        self.sub_task_script = 'run.sh'
-        self.merger_task_scirpt = 'post.sh'
-
-        self.fn = 'monteCarlo_simu_on_Gate@7.2'
-
-        self.sub_task_outputs = ["result.root"]
-        self.merger_task_output = "result.root"
+        self.sub_task_script = sub_task_script
+        self.fn = fn
+        self.sub_task_outputs = sub_task_outputs
+        self.merger_task_output = merger_task_output
         self.scheduler = scheduler
-
         self.backend = backend
-
         self.observable = self._main()
 
     def _sub_tasks(self):
@@ -121,20 +118,20 @@ def hadd(sub_outputs: list, hadd_output: str):
 #     return submit(t, Slurm("192.168.1.131"))
 
 
-def run_a_lot_mc_simulations(
-        root: "Path", nb_tasks: int, config
-) -> List[Resource["File"]]:
-    return sequential(
-        lambda _: make_sub_directories(root, nb_tasks, "parallel_mc"),
-        lambda dirs: parallel(
-            lambda d: [
-                MonteCarloSimulation(
-                    d, 100, config, [Resource("constant/monte_carlo/material.xml")]
-                )
-                for d in dirs
-            ]
-        ),
-    )
+# def run_a_lot_mc_simulations(
+#         root: "Path", nb_tasks: int, config
+# ) -> List[Resource["File"]]:
+#     return sequential(
+#         lambda _: make_sub_directories(root, nb_tasks, "parallel_mc"),
+#         lambda dirs: parallel(
+#             lambda d: [
+#                 MonteCarloSimulation(
+#                     d, 100, config, [Resource("constant/monte_carlo/material.xml")]
+#                 )
+#                 for d in dirs
+#             ]
+#         ),
+#     )
 
 # alotmc = run_a_lot_mc_simulations(...)
 # submit(alotmc).subscribe_on(Slurm('1545'))

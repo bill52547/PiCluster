@@ -45,65 +45,75 @@ tasks = Table(
 )
 
 
-masterTask = Table(
-    'masterTask', meta,
+resources = Table(
+    'resources', meta,
     Column('id', Integer, primary_key=True),
-    Column('task_id', Integer, ForeignKey("tasks.id")),
-    Column('backend', String),
-    Column('workdir', String),
-    Column('state', Enum(TaskState, name='state_enum', metadata=meta)),
-    Column('config', JSON)
-)
-
-backends = Table(
-    'backends', meta,
-    Column('id', Integer, primary_key=True),
-    Column('backend', String)
-)
-
-
-procedures = Table(
-    'procedures', meta,
-    Column('id', Integer, primary_key=True),
-    Column('procedure', String),
-    Column('command', postgresql.ARRAY(String, dimensions=1))
-)
-
-
-ioCollections = Table(
-    'ioCollections', meta,
-    Column('id', Integer, primary_key=True),
-    Column('file_name', String),
+    # Column('file_name', String),
+    Column('type', String),
     Column('comments', String),
-    Column('url', String)
+    Column('urls', postgresql.ARRAY(String, dimensions=1)),
+    Column('hash', String)
 )
 
+# masterTask = Table(
+#     'masterTask', meta,
+#     Column('id', Integer, primary_key=True),
+#     Column('task_id', Integer, ForeignKey("tasks.id")),
+#     Column('backend', String),
+#     Column('workdir', String),
+#     Column('state', Enum(TaskState, name='state_enum', metadata=meta)),
+#     Column('config', JSON)
+# )
 
-macs = Table(
-    'macs', meta,
-    Column('id', Integer, primary_key=True),
-    Column('file_name', String),
-    Column('comments', String),
-    Column('url', String)
-)
-
-
-phantoms = Table(
-    'phantoms', meta,
-    Column('id', Integer, primary_key=True),
-    Column('phantom_bin', String),
-    Column('activity_range', String),
-    Column('range_material', String)
-)
+# backends = Table(
+#     'backends', meta,
+#     Column('id', Integer, primary_key=True),
+#     Column('backend', String)
+# )
 
 
-phantomHeaders = Table(
-    'phantomHeaders', meta,
-    Column('id', Integer, primary_key=True),
-    Column('file_name', String),
-    Column('comments', String),
-    Column('url', String)
-)
+# procedures = Table(
+#     'procedures', meta,
+#     Column('id', Integer, primary_key=True),
+#     Column('procedure', String),
+#     Column('command', postgresql.ARRAY(String, dimensions=1))
+# )
+
+
+# ioCollections = Table(
+#     'ioCollections', meta,
+#     Column('id', Integer, primary_key=True),
+#     Column('file_name', String),
+#     Column('comments', String),
+#     Column('url', String)
+# )
+
+
+# macs = Table(
+#     'macs', meta,
+#     Column('id', Integer, primary_key=True),
+#     Column('file_name', String),
+#     Column('comments', String),
+#     Column('url', String)
+# )
+
+
+# phantoms = Table(
+#     'phantoms', meta,
+#     Column('id', Integer, primary_key=True),
+#     Column('phantom_bin', String),
+#     Column('activity_range', String),
+#     Column('range_material', String)
+# )
+
+
+# phantomHeaders = Table(
+#     'phantomHeaders', meta,
+#     Column('id', Integer, primary_key=True),
+#     Column('file_name', String),
+#     Column('comments', String),
+#     Column('url', String)
+# )
 
 
 @attr.s(auto_attribs=True)
@@ -126,27 +136,27 @@ class Task:
     fn: typing.Optional[str] = None
 
 
-@attr.s(auto_attribs=True)
-class Mastertask:
-    id: typing.Optional[str] = None
-    task_id: typing.Optional[str] = None
-    backend: typing.Optional[str] = None
-    workdir: typing.Optional[str] = None
-    state: TaskState = TaskState.Created
-    config: typing.Dict = None
-
-    def casts(self):
-        return Subject.from_(self.config['init']['broadcast']['targets'])
-
-    def source(self):
-        return Subject.from_(self.config['init']['external']).map(lambda x: x['source'])
-
-    def inputs(self):
-        return Observable.merge(self.casts(), self.source())
+# @attr.s(auto_attribs=True)
+# class Mastertask:
+#     id: typing.Optional[str] = None
+#     task_id: typing.Optional[str] = None
+#     backend: typing.Optional[str] = None
+#     workdir: typing.Optional[str] = None
+#     state: TaskState = TaskState.Created
+#     config: typing.Dict = None
+#
+#     def casts(self):
+#         return Subject.from_(self.config['init']['broadcast']['targets'])
+#
+#     def source(self):
+#         return Subject.from_(self.config['init']['external']).map(lambda x: x['source'])
+#
+#     def inputs(self):
+#         return Observable.merge(self.casts(), self.source())
 
 
 mapper(Task, tasks)
-mapper(Mastertask, masterTask)
+# mapper(Mastertask, masterTask)
 
 
 class TaskStateField(ma.fields.Field):
@@ -189,16 +199,16 @@ class TasksSchema(ma.Schema):
 taskSchema = TasksSchema()
 
 
-class MasterTaskSchema(ma.Schema):
-    id = ma.fields.Integer(allow_none=False)
-    task_id = ma.fields.Integer(allow_none=False)
-    backend = ma.fields.String(allow_none=False)
-    state = TaskStateField(attribute="state")
-    workdir = ma.fields.String(allow_none=True)
-    config = ma.fields.Dict(allow_none=True)
+# class MasterTaskSchema(ma.Schema):
+#     id = ma.fields.Integer(allow_none=False)
+#     task_id = ma.fields.Integer(allow_none=False)
+#     backend = ma.fields.String(allow_none=False)
+#     state = TaskStateField(attribute="state")
+#     workdir = ma.fields.String(allow_none=True)
+#     config = ma.fields.Dict(allow_none=True)
 
 
-masterTaskschema = MasterTaskSchema()
+# masterTaskschema = MasterTaskSchema()
 
 
 def create_all(database: DataBase):

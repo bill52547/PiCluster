@@ -1,4 +1,4 @@
-from ..database.model import TaskState, Task, Mastertask
+from ..database.model import TaskState, Task
 from ..database.db import DataBase
 from ..dispatcher import methodispatch
 
@@ -43,12 +43,12 @@ def _(self, t: Task):
 #         return self.read(t)
 
 
-@TaskTransactions.post.register(Mastertask)
-def _(self, t):
-    with self.db.session() as sess:
-        sess.add(t)
-        sess.commit()
-        return self.read(t)
+# @TaskTransactions.post.register(Mastertask)
+# def _(self, t):
+#     with self.db.session() as sess:
+#         sess.add(t)
+#         sess.commit()
+#         return self.read(t)
 
 
 @TaskTransactions.read.register(Task)
@@ -63,10 +63,10 @@ def _(self, t: Task):
 #         return sess.query(SlurmTask).get(t.id)
 
 
-@TaskTransactions.read.register(Mastertask)
-def _(self, t: Mastertask):
-    with self.db.session() as sess:
-        return sess.query(Mastertask).get((t.id))
+# @TaskTransactions.read.register(Mastertask)
+# def _(self, t: Mastertask):
+#     with self.db.session() as sess:
+#         return sess.query(Mastertask).get((t.id))
 
 
 @TaskTransactions.read.register(Select)

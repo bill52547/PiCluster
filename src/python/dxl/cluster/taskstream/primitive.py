@@ -37,10 +37,7 @@ class Resource(Generic[T]):  # TODO: carefully define normal object and Re
     """
     A resource which is queryable from database
     """
-
-    table_name: str
-    primary_key: int
-    returns: list
+    id: int
 
 
 class Query(Request):
@@ -62,14 +59,14 @@ class Query(Request):
     @classmethod
     def from_resource(cls, resource: Resource) -> func:
         # print(f"DEBUG Query.from_resource {resource}: {Request.read(table_name=resource.table_name, select='id',condition=str(resource.primary_key),returns=resource.returns)}")
-        return rx.of(Request.read(table_name=resource.table_name,
+        return rx.of(Request.read(table_name="resources",
                                   select='id',
-                                  condition=str(resource.primary_key),
-                                  returns=resource.returns))
+                                  condition=str(resource.id),
+                                  returns=["urls"]))
 
 
-class Table(Generic[T]):
-    name: str
+# class Table(Generic[T]):
+#     name: str
 
 
 def task(t: Task) -> func:

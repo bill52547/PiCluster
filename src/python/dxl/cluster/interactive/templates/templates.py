@@ -43,11 +43,12 @@ query {
 
 
 query_insert = """
-mutation {
+mutation insert_{{table_name}} {
   insert_{{table_name}}(
     objects:[
       {
-        {% for k,v in inserts.items() %}{{k}}: "{{v}}"{% endfor %}
+        {% for k,v in inserts.items() %}{{k}}: "{{v}}"{% if not loop.last %}, 
+        {% endif %}{% endfor %}
       }
     ]
   ){
