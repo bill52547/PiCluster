@@ -5,12 +5,14 @@ import json
 import yaml
 import requests
 import shutil
+import operator
+from functools import reduce
 from pathlib import Path
 from yaml import Loader
 
 from dxl.cluster.interactive.web import Request
 from dxl.cluster.database.transactions import deserialization
-from .schema import SlurmOp
+from .schema import SlurmOp, SlurmTaskState
 from ..base import Backend
 from ...database.model.schema import Task
 from ...config.slurm import SlurmConfig
@@ -49,7 +51,7 @@ class Slurm(Backend):
         return rx.create(query)
 
     def queue(self):
-        return rx.interval(1.0).pipe(ops.map(lambda _: self._squeue()))
+        return rx.interval(1.0).pipe(ops.map(lambda _: self._squeue()), ops.share())
 
     def completed(self):
         def squeue_scanner(last, current):
@@ -80,7 +82,7 @@ class Slurm(Backend):
             try:
                 result = int(result['job_id'])
             except Exception as e:
-                print(f"Error!, ***{e}*** sbatch error, expected slurm_id, got {result}")
+                print(f"SLurm submit Error!, ***{e}*** sbatch error, expected slurm_id, got {result}")
 
             return result
         return _sbatch()
@@ -92,6 +94,13 @@ class Slurm(Backend):
             response = self._scancel(task)
 
         return str(response)
+
+    def is_overload(self):
+        def _is_overload(squeue):
+            tmp = [i["status"] == SlurmTaskState.Created.value for i in squeue]
+            return reduce(operator.or_, tmp)
+
+        return self.queue().pipe(ops.map(_is_overload))
 
 
 def config_parser(config_dict):
@@ -169,7 +178,8 @@ complete_queue = (
         ops.map(lambda l: [deserialization(i).job_id for i in l]),
         ops.scan(squeue_scanner, ([], [])),
         ops.map(lambda x: x[1]),
-        ops.filter(lambda x: x!=[])
+        ops.filter(lambda x: x!=[]),
+        ops.share()
     )
 )
 

@@ -25,14 +25,11 @@ def sequential(seq: "List[submit]"):
     return reduce(lambda prev, nxt: prev.pipe(ops.flat_map(nxt)), seq)
 
 
-# def average_time_detector(ratio: float = 3.0) -> "ErrorDetector":
-#     """
-#     throws errors if one of observed tasks runs for ratio * mean_time_of(80% tasks)
-#     """
-#     return lambda tasks: Observable['Done'] # for throw purpose only
-
-
 def parallel_with_error_detect(tasks, rate_of_tolerance=3):
+    """
+    Throw timeout if one or more observed tasks runs for a ratio * mean_time_of(80% tasks)
+    """
+
     num_tasks = len(tasks)
 
     def _get_time_used(task_tuple: "(Datetime(start), Timestamp(value=[], timestamp=current))"):
@@ -77,5 +74,4 @@ def parallel_with_error_detect(tasks, rate_of_tolerance=3):
     _outputs_with_timeout = rx.amb(_time_of_tolerance_on_majority_completed,
                                    _outputs_of_tolerance_on_majority_completed)
 
-    #     _outputs_with_timeout.subscribe(print, print, print)
     return _outputs_with_timeout

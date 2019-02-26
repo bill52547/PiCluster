@@ -92,8 +92,21 @@ def sync_resource(resource_dict):
                                       condition=resource_dict["hash"],
                                       returns=["id"])
 
+    modified_item_id = Request.read(table_name="resources",
+                                    select="urls",
+                                    condition=resource_dict["urls"],
+                                    returns=["id"])
+
     if len(duplicated_item_id):
         raise ValueError(f"Duplicated item with resource id: {duplicated_item_id}.")
+
+    if len(modified_item_id):
+        for i in modified_item_id:
+            if i in modified_item_id and i not in duplicated_item_id:
+                Request.updates(table_name="resources",
+                                id=i,
+                                patches=resource_dict)
+                raise ValueError(f"Modified item with resource id: {modified_item_id}, already updated")
 
     return Request.insert(table_name="resources", inserts=resource_dict)
 

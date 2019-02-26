@@ -93,7 +93,12 @@ class MonteCarloSimulation:
         return parallel(tasks=[_load_one_required_resource(resource) for resource in self.required_files])
 
     def _main(self):
-        return self._sub_tasks().pipe(ops.flat_map(self._merger_task))
+        def _is_ok_to_run():
+            _is_not_overload = lambda x: x is False
+            return self.backend.is_overload().pipe(ops.filter(_is_not_overload), ops.take(1), ops.map(lambda _: True))
+
+        complete_mc_task = self._sub_tasks().pipe(ops.flat_map(self._merger_task))
+        return sequential([_is_ok_to_run(), complete_mc_task])
 
 
 def make_sub_directories(
@@ -112,26 +117,3 @@ def hadd(sub_outputs: list, hadd_output: str):
     def to_string(l):
         return " ".join(l)
     return cli(f"srun hadd {hadd_output} {to_string(sub_outputs)}")
-
-# def create_sub_directories_via_slurm():
-#     t = make_sub_directories("./some/path", 10, "slurm_sub")
-#     return submit(t, Slurm("192.168.1.131"))
-
-
-# def run_a_lot_mc_simulations(
-#         root: "Path", nb_tasks: int, config
-# ) -> List[Resource["File"]]:
-#     return sequential(
-#         lambda _: make_sub_directories(root, nb_tasks, "parallel_mc"),
-#         lambda dirs: parallel(
-#             lambda d: [
-#                 MonteCarloSimulation(
-#                     d, 100, config, [Resource("constant/monte_carlo/material.xml")]
-#                 )
-#                 for d in dirs
-#             ]
-#         ),
-#     )
-
-# alotmc = run_a_lot_mc_simulations(...)
-# submit(alotmc).subscribe_on(Slurm('1545'))

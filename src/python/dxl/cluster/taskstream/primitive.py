@@ -102,7 +102,7 @@ def is_file(file: "URL") -> bool:
 
 
 def create(item: T, table_name: str) -> Resource:
-    "create a record in database for one item, e.g. a File"
+    """create a record in database for one item, e.g. a File"""
     if isinstance(item, dict):
         pass
     else:
@@ -126,10 +126,13 @@ def submit(task: Task, backend: "Scheduler"=SlurmSjtu) -> "Observable['output']"
     def _submit(obs, scheduler):
         id_on_backend = int(backend.submit(task))
         if id_on_backend is not None:
-            obs.on_next(attr.evolve(task,
-                                    id_on_backend=id_on_backend,
-                                    state=TaskState.Running,
-                                    state_on_backend=TaskState.Running))
+            t = attr.evolve(task,
+                            id_on_backend=id_on_backend,
+                            state=TaskState.Running,
+                            state_on_backend=TaskState.Running)
+            #TODO
+            # insert_or_update_task(t)
+            obs.on_next(t)
             obs.on_completed()
             return
         raise Exception

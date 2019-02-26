@@ -10,12 +10,12 @@ mutation {
   update_{{table_name}}(
     where: {id: {_eq: {{id}}}},
     _set: {
-      {% for k,v in patches.items() %}{{k}}: "{{v}}"{% endfor %}
+      {% for k,v in patches.items() %}{{k}}: "{{v}}"{% if not loop.last %}, 
+      {% endif %}{% endfor %}
     }
   ){
     returning{
       id
-      state
     }
   }
 }
