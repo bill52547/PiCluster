@@ -1,4 +1,5 @@
 import requests
+import attr
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from typing import Iterable
 
@@ -6,6 +7,7 @@ from .templates import query_update, query_conditional_read, query_insert, query
 from ..database.model import taskSchema
 from ..config import GraphQLConfig
 from ..database.transactions import deserialization
+from ..database.model.schema import Task
 
 
 class Request:
@@ -99,31 +101,36 @@ class Request:
         query = j2_template.render(table_name=table_name, inserts=inserts)
         return cls.run_query(query)
 
-    @classmethod
-    def get_submitable(cls, tasks_to_track=1):
-        #TODO 序列化/反序列化  还用原来方法做
+    # @classmethod
+    # def get_submitable(cls, tasks_to_track=1):
+    #
+    #     query_template = """
+    #         query {
+    #           masterTask(
+    #             limit: {{tasks_to_track}}
+    #             where: {state: {_eq: "Created"}}
+    #           ){
+    #             id
+    #             tasksBytaskId{
+    #               id
+    #               depends
+    #             }
+    #           }
+    #         }
+    #     """
+    #     j2_template = cls.j2_env.from_string(query_template)
+    #     query = j2_template.render(tasks_to_track=tasks_to_track)
+    #     response = cls.run_query(query)
+    #
+    #     d = {}
+    #
+    #     for t in response['data']['masterTask']:
+    #         d[t['tasksBytaskId']['id']] = t['tasksBytaskId']['depends']
+    #
+    #     return d
 
-        query_template = """
-            query {
-              masterTask(
-                limit: {{tasks_to_track}}
-                where: {state: {_eq: "Created"}}
-              ){
-                id
-                tasksBytaskId{
-                  id
-                  depends
-                }
-              }
-            }
-        """
-        j2_template = cls.j2_env.from_string(query_template)
-        query = j2_template.render(tasks_to_track=tasks_to_track)
-        response = cls.run_query(query)
 
-        d = {}
-
-        for t in response['data']['masterTask']:
-            d[t['tasksBytaskId']['id']] = t['tasksBytaskId']['depends']
-
-        return d
+# class RequestTask(Request):
+#     @classmethod
+#     def read(cls, task_id):
+#          return super().read(table_name="tasks", select="id", condition=str(task_id), returns=list(attr.fields_dict(Task).keys()))

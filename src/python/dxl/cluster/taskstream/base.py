@@ -14,7 +14,7 @@ class TaskBase(ABC):
     def load_required_files_to_work_directory(self):
         pass
 
-    def is_runnable(self):
+    def is_backend_runnable(self):
         pass
 
     def _main(self):

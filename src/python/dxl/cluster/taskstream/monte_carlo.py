@@ -1,15 +1,16 @@
 import re
 from pathlib import Path
 from .cli_tasks import mkdir, mv, cp, mkdir_if_not_exist, mkdir_n_return
-from .primitive import Resource, Query, submit, cli, insert_or_update_taskdb
+from .primitive import Resource, Query, submit, cli, is_duplicate_task, insert_or_update_task, update_task
 from typing import List
 from .combinator import parallel, sequential, parallel_with_error_detect
 from ..backend.slurm.slurm import SlurmSjtu
 from rx import operators as ops
 from functools import partial
+import attr
 import rx
 from ..database.model.schema import Task, TaskState
-import datetime import datetime
+from datetime import datetime
 import arrow
 
 
@@ -35,7 +36,7 @@ class MonteCarloSimulation:
             merger_task_output="result.root",
             sub_task_script='run.sh'
     ):
-        self.work_directory = str(work_directory)
+        self.work_directory = Path(work_directory)
         self.required_files = required_resources
         self.nb_subtasks = nb_subtasks
         self.sub_task_script = sub_task_script
@@ -44,12 +45,14 @@ class MonteCarloSimulation:
         self.merger_task_output = merger_task_output
         self.scheduler = scheduler
         self.backend = backend
-        self.Task = Task(inputs=[str(i.id) for i in self.required_files],
-                         state=TaskState.Created,
-                         scheduler="SlurmSjtu",
+        self.Task = Task(inputs=sorted([str(i.id) for i in self.required_files]),
+                         state=TaskState.Created.name,
+                         scheduler="PiCluster",
                          backend="SlurmSjtu",
+                         fn=self.fn,
                          workdir=self.work_directory,
-                         outputs=self.work_directory+"/"+self.merger_task_output)
+                         outputs=[str(self.work_directory/self.merger_task_output)],
+                         state_on_backend=None)
         self.observable = self._main()
 
     def _sub_tasks(self):
@@ -83,7 +86,6 @@ class MonteCarloSimulation:
                         fn=self.fn,
                         outputs=self.sub_task_outputs,
                         scheduler=self.scheduler)
-
         task = _sub_task()
         return submit(task=task, backend=self.backend)
 
@@ -111,28 +113,61 @@ class MonteCarloSimulation:
         return self.backend.is_overload().pipe(ops.filter(_is_not_overload), ops.take(1), ops.map(lambda _: True))
 
     def _on_created(self):
-        t = self.Task
-        insert_or_update_taskdb(t)
+        def _create():
+            t = attr.evolve(self.Task,
+                            state=TaskState.Created.name,
+                            submit=datetime.utcnow())
+            task_id = insert_or_update_task(t)
+            self.Task = attr.evolve(t, id=task_id)
+        return rx.from_callable(_create)
 
     def _on_running(self):
-        pass
+        def _running():
+            t = attr.evolve(self.Task,
+                            state=TaskState.Running.name,
+                            submit=datetime.utcnow())
+            update_task(t)
+        return rx.from_callable(_running)
 
     def _on_completed(self):
-        pass
+        def _completed():
+            t = attr.evolve(self.Task,
+                            state=TaskState.Completed.name,
+                            submit=datetime.utcnow())
+            return update_task(t)
+        return rx.from_callable(_completed)
+
+    def _on_duplicate(self):
+        def _duplicate():
+            return self.Task.outputs
+        return rx.from_callable(_duplicate)
 
     def _main(self):
         complete_mc_task = self._sub_tasks().pipe(ops.flat_map(self._merger_task),
                                                   ops.map(self._parse_merger_output))
-        return sequential([self._is_backend_avaliable(), complete_mc_task])
+
+        is_dup = is_duplicate_task(self.Task)
+
+        on_duplicated_task = sequential([is_dup.pipe(ops.filter(lambda value: value==True)),
+                                         self._on_duplicate()])
+
+        on_new_task = sequential([is_dup.pipe(ops.filter(lambda value: value==False)),
+                                  self._on_created(),
+                                  self._is_backend_avaliable(),
+                                  self._on_running(),
+                                  complete_mc_task,
+                                  self._on_completed()])
+
+        return parallel(on_duplicated_task, on_new_task)
+
+
+def debug_print(text):
+    return cli(f"echo {text}")
 
 
 def make_sub_directories(
         root: Path, nb_sub_directories: int, prefix="sub"
-) -> "Observable[List[Path]]":
-    """
-    usage:
-    make_sub_directories(root=".", nb_sub_directories=10).subscribe(print, print)
-    """
+) -> "List[str]":
     if not isinstance(root, Path):
         root = Path(root)
     return [root / f"{prefix}.{i}" for i in range(nb_sub_directories)]
