@@ -1,13 +1,15 @@
+import re
 from pathlib import Path
 from .cli_tasks import mkdir, mv, cp, mkdir_if_not_exist, mkdir_n_return
-from .primitive import Resource, Query, submit, cli, tap
+from .primitive import Resource, Query, submit, cli, insert_or_update_taskdb
 from typing import List
 from .combinator import parallel, sequential, parallel_with_error_detect
 from ..backend.slurm.slurm import SlurmSjtu
 from rx import operators as ops
 from functools import partial
 import rx
-from ..database.model.schema import Task
+from ..database.model.schema import Task, TaskState
+import datetime import datetime
 import arrow
 
 
@@ -33,7 +35,7 @@ class MonteCarloSimulation:
             merger_task_output="result.root",
             sub_task_script='run.sh'
     ):
-        self.work_directory = work_directory
+        self.work_directory = str(work_directory)
         self.required_files = required_resources
         self.nb_subtasks = nb_subtasks
         self.sub_task_script = sub_task_script
@@ -42,6 +44,12 @@ class MonteCarloSimulation:
         self.merger_task_output = merger_task_output
         self.scheduler = scheduler
         self.backend = backend
+        self.Task = Task(inputs=[str(i.id) for i in self.required_files],
+                         state=TaskState.Created,
+                         scheduler="SlurmSjtu",
+                         backend="SlurmSjtu",
+                         workdir=self.work_directory,
+                         outputs=self.work_directory+"/"+self.merger_task_output)
         self.observable = self._main()
 
     def _sub_tasks(self):
@@ -62,7 +70,6 @@ class MonteCarloSimulation:
     def _merger_task(self, sub_outputs):
         def _submit_merge_task():
             task = Task(workdir=self.work_directory,
-                        script="hadd_command",
                         fn=self.fn,
                         outputs=self.merger_task_output,
                         scheduler=self.scheduler)
@@ -80,6 +87,12 @@ class MonteCarloSimulation:
         task = _sub_task()
         return submit(task=task, backend=self.backend)
 
+    def _parse_merger_output(self, merger_output):
+        if "hadd Target file: " in merger_output[0]:
+            result_url = re.sub(r"hadd Target file: ", "", merger_output[0])
+            if str(result_url) == self.work_directory + "/" + self.merger_task_output:
+                return result_url
+
     def load_required_files_to_directory(self, directory: Path):
         if not isinstance(directory, Path):
             # print(f"DEBUG: load_required_files_to_directory {directory}")
@@ -92,14 +105,25 @@ class MonteCarloSimulation:
 
         return parallel(tasks=[_load_one_required_resource(resource) for resource in self.required_files])
 
-    def _main(self):
-        #TODO need test
-        def _is_ok_to_run():
-            _is_not_overload = lambda x: x is False
-            return self.backend.is_overload().pipe(ops.filter(_is_not_overload), ops.take(1), ops.map(lambda _: True))
+    def _is_backend_avaliable(self):
+        def _is_not_overload(x):
+            return x is False
+        return self.backend.is_overload().pipe(ops.filter(_is_not_overload), ops.take(1), ops.map(lambda _: True))
 
-        complete_mc_task = self._sub_tasks().pipe(ops.flat_map(self._merger_task))
-        return sequential([_is_ok_to_run(), complete_mc_task])
+    def _on_created(self):
+        t = self.Task
+        insert_or_update_taskdb(t)
+
+    def _on_running(self):
+        pass
+
+    def _on_completed(self):
+        pass
+
+    def _main(self):
+        complete_mc_task = self._sub_tasks().pipe(ops.flat_map(self._merger_task),
+                                                  ops.map(self._parse_merger_output))
+        return sequential([self._is_backend_avaliable(), complete_mc_task])
 
 
 def make_sub_directories(
