@@ -66,7 +66,7 @@ class MonteCarloSimulation:
                         fn=self.fn,
                         outputs=self.merger_task_output,
                         scheduler=self.scheduler)
-            return hadd(hadd_output=task.workdir+"/"+task.outputs, sub_outputs=sub_outputs)
+            return hadd(hadd_output=str(task.workdir)+"/"+str(task.outputs), sub_outputs=sub_outputs)
         return _submit_merge_task()
 
     def _submit_sub_task(self, work_dir: str):
@@ -93,6 +93,7 @@ class MonteCarloSimulation:
         return parallel(tasks=[_load_one_required_resource(resource) for resource in self.required_files])
 
     def _main(self):
+        #TODO need test
         def _is_ok_to_run():
             _is_not_overload = lambda x: x is False
             return self.backend.is_overload().pipe(ops.filter(_is_not_overload), ops.take(1), ops.map(lambda _: True))

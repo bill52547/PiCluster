@@ -97,8 +97,11 @@ class Slurm(Backend):
 
     def is_overload(self):
         def _is_overload(squeue):
-            tmp = [i["status"] == SlurmTaskState.Created.value for i in squeue]
-            return reduce(operator.or_, tmp)
+            if len(squeue):
+                tmp = [i["status"] == SlurmTaskState.Created.value for i in squeue]
+                return reduce(operator.or_, tmp)
+            if not len(squeue):
+                return False
 
         return self.queue().pipe(ops.map(_is_overload))
 

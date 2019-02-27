@@ -1,10 +1,21 @@
-import rx
 from collections import UserDict
+import abc
+from abc import ABC
 
+#TODO programming socket
+class TaskBase(ABC):
+    def __init__(self, work_directory, required_resources, scheduler, backend, fn, outputs):
+        pass
 
-class TaskBase(UserDict):
-    def __init__(self, **kwargs):
-        super().__init__(kwargs)
+    @abc.abstractclassmethod
+    def submit(self):
+        pass
+
+    def load_required_files_to_work_directory(self):
+        pass
+
+    def is_runnable(self):
+        pass
 
 
 class taskStreamFactory:

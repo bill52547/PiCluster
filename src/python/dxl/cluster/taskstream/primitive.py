@@ -117,7 +117,7 @@ def create(item: T, table_name: str) -> Resource:
     return Resource(table_name=table_name, primary_key=result_id)
 
 
-def submit(task: Task, backend: "Scheduler"=SlurmSjtu) -> "Observable['output']":
+def submit(task: Task, backend: "Scheduler"=SlurmSjtu, track_in_db=False) -> "Observable['output']":
     """
     Submit a **Task** to a scheduler, in the future, we may directly extend rx.Scheduler to fit our use.
     thus, currently, we need use submit(a_task, Slurm('192.168.1.131')).subscribe()
@@ -172,3 +172,9 @@ def submit(task: Task, backend: "Scheduler"=SlurmSjtu) -> "Observable['output']"
             ops.map(_on_completed),
             ops.map(_on_return)
         )
+
+
+def insert_or_update_taskdb(task: Task) -> Task:
+    #TODO
+
+    pass

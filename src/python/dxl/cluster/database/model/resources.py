@@ -106,7 +106,7 @@ def sync_resource(resource_dict):
                 Request.updates(table_name="resources",
                                 id=i,
                                 patches=resource_dict)
-                raise ValueError(f"Modified item with resource id: {modified_item_id}, already updated")
+                raise ValueError(f"Modified item with resource id: {modified_item_id}, already updated.")
 
     return Request.insert(table_name="resources", inserts=resource_dict)
 
