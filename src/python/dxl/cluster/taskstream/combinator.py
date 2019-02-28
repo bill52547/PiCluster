@@ -13,6 +13,7 @@ def parallel(
 ):
     """
     wrap of rx operators merge
+    Usage: parallel([task_1, task_2...])
     """
     return merge(*tasks)
 
@@ -20,7 +21,7 @@ def parallel(
 def sequential(seq: "List[submit]"):
     """
     usage:
-    parallel([submit_task_1, submit_task_2])
+    sequential([submit_task_1, submit_task_2])
     """
     return reduce(lambda prev, nxt: prev.pipe(ops.flat_map(nxt)), seq)
 

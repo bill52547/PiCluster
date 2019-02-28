@@ -1,7 +1,7 @@
 import re
 from pathlib import Path
 from .cli_tasks import mkdir, mv, cp, mkdir_if_not_exist, mkdir_n_return
-from .primitive import Resource, Query, submit, cli, is_duplicate_task, insert_or_update_task, update_task
+from .primitive import Resource, Query, submit, cli, is_duplicate_task
 from typing import List
 from .combinator import parallel, sequential, parallel_with_error_detect
 from ..backend.slurm.slurm import SlurmSjtu
@@ -10,6 +10,7 @@ from functools import partial
 import attr
 import rx
 from ..database.model.schema import Task, TaskState
+from ..interactive.web import Request
 from datetime import datetime
 import arrow
 
@@ -92,7 +93,8 @@ class MonteCarloSimulation:
     def _parse_merger_output(self, merger_output):
         if "hadd Target file: " in merger_output[0]:
             result_url = re.sub(r"hadd Target file: ", "", merger_output[0])
-            if str(result_url) == self.work_directory + "/" + self.merger_task_output:
+            #TODO need etter url/path
+            if str(result_url) == str(self.work_directory/self.merger_task_output):
                 return result_url
 
     def load_required_files_to_directory(self, directory: Path):
@@ -116,9 +118,15 @@ class MonteCarloSimulation:
         def _create():
             t = attr.evolve(self.Task,
                             state=TaskState.Created.name,
-                            submit=datetime.utcnow())
-            task_id = insert_or_update_task(t)
+                            create=datetime.utcnow())
+            # print(f"MC _on_created, creat task: {t}")
+            task_id = Request.insert_task(t)
+            # print(f"MC _on_created, task_id {task_id}")
             self.Task = attr.evolve(t, id=task_id)
+            if isinstance(task_id, int):
+                return True
+            else:
+                raise ValueError(f"Create task error. Expect a int task_id, got: {task_id}, type: {type(task_id)}")
         return rx.from_callable(_create)
 
     def _on_running(self):
@@ -126,15 +134,18 @@ class MonteCarloSimulation:
             t = attr.evolve(self.Task,
                             state=TaskState.Running.name,
                             submit=datetime.utcnow())
-            update_task(t)
+            response = Request.update_task(t)
+            # print(f"MC _on_running, task_id {response}")
+            return True
         return rx.from_callable(_running)
 
     def _on_completed(self):
         def _completed():
             t = attr.evolve(self.Task,
                             state=TaskState.Completed.name,
-                            submit=datetime.utcnow())
-            return update_task(t)
+                            finish=datetime.utcnow())
+            Request.update_task(t)
+            return self.Task.outputs
         return rx.from_callable(_completed)
 
     def _on_duplicate(self):
@@ -155,10 +166,10 @@ class MonteCarloSimulation:
                                   self._on_created(),
                                   self._is_backend_avaliable(),
                                   self._on_running(),
-                                  complete_mc_task,
+                                  lambda _: complete_mc_task,
                                   self._on_completed()])
 
-        return parallel(on_duplicated_task, on_new_task)
+        return parallel([on_duplicated_task, on_new_task])
 
 
 def debug_print(text):

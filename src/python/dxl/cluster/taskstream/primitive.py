@@ -9,7 +9,7 @@ import rx
 from rx import Observable
 from rx import operators as ops
 
-from ..interactive.web import Request
+from ..interactive.web import Request, _to_graphql_style_array, _serilize
 from ..config.graphql import GraphQLConfig
 from ..backend.slurm.slurm import SlurmSjtu
 from ..database.model.schema import Task, TaskState
@@ -174,41 +174,34 @@ def submit(task: Task, backend: "Scheduler"=SlurmSjtu, track_in_db=False) -> "Ob
         )
 
 
-def _to_graphql_style_array(l: list) -> str:
-    return "{" + ",".join(str(i) for i in l) + "}"
-
-
-def _serilize(task: Task):
-    result = dict()
-    task_dict = attr.asdict(task)
-    for k,v in task_dict.items():
-        if v is None:
-            continue
-        if isinstance(v, list):
-            result[k] = _to_graphql_style_array(v)
-        else:
-            result[k] = v
-    return result
+# def _to_graphql_style_array(l: list) -> str:
+#     return "{" + ",".join(str(i) for i in l) + "}"
+#
+#
+# def _serilize(task: Task):
+#     result = dict()
+#     task_dict = attr.asdict(task)
+#     for k,v in task_dict.items():
+#         if v is None:
+#             continue
+#         if isinstance(v, list):
+#             result[k] = _to_graphql_style_array(v)
+#         else:
+#             result[k] = v
+#     return result
 
 
 def is_duplicate_task(task: Task):
     def _is_duplicate_task():
-        # duplicated_task = Request.read(table_name="tasks",
-        #                                select="inputs",
-        #                                condition=_to_graphql_style_array(task.inputs),
-        #                                returns=["id"])
-        duplicated_task = read_output_by_input(task.inputs)
-
+        duplicated_task = Request.read_tasks(select="inputs", where=_to_graphql_style_array(task.inputs))
         num_duplicated_tasks = len(duplicated_task)
+
         if num_duplicated_tasks:
             assert num_duplicated_tasks == 1
-            duplicated_task_state = Request.read(table_name="tasks",
-                                                 select="id",
-                                                 condition=str(duplicated_task[0]),
-                                                 returns=["state"])
+            duplicated_task_state = duplicated_task[0].state
 
-            if TaskState.Completed.name in duplicated_task_state:
-                print(f"""Task with resources id: {task.inputs} has been executed, will return output of previous task: {duplicated_task[0]}.""")
+            if TaskState.Completed is duplicated_task_state:
+                print(f"""Task with resources id: {task.inputs} has been executed, will return output of previous task: {duplicated_task[0].id}.""")
                 return True
             else:
                 return False
@@ -217,22 +210,22 @@ def is_duplicate_task(task: Task):
     return rx.from_callable(_is_duplicate_task)
 
 
-def insert_or_update_task(task: Task):
-    dup_task = read_output_by_input(task.inputs)
-    if len(dup_task):
-        assert len(dup_task) == 1
-        task.id = dup_task[0]
-        return update_task(task)
-    else:
-        return Request.insert(table_name='tasks', inserts=_serilize(task))['data']['insert_tasks']['returning'][0]['id']
+# def insert_or_update_task(task: Task):
+#     dup_task = read_output_by_input(task.inputs)
+#     if len(dup_task):
+#         assert len(dup_task) == 1
+#         task.id = dup_task[0]
+#         return update_task(task)
+#     else:
+#         return Request.insert(table_name='tasks', inserts=_serilize(task))['data']['insert_tasks']['returning'][0]['id']
 
 
-def read_output_by_input(inputs):
-    return Request.read(table_name="tasks", select="inputs", condition=_to_graphql_style_array(inputs), returns=["outputs"])
+# def read_output_by_input(inputs):
+#     return Request.read(table_name="tasks", select="inputs", condition=_to_graphql_style_array(inputs), returns=["outputs"])
 
 
-def update_task(task: Task):
-    return Request.updates(table_name="tasks", id=task.id, patches=_serilize(task))
+# def update_task(task: Task):
+#     return Request.updates(table_name="tasks", id=task.id, patches=_serilize(task))
 
 
 

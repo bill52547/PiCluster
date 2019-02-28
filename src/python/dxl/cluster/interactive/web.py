@@ -78,28 +78,51 @@ class Request:
             return cls.run_query(query)
 
     @classmethod
-    def read_tasks(cls, taskid_list):
-        if isinstance(taskid_list, int):
-            taskid_list = [taskid_list]
-        if isinstance(taskid_list, list):
-            tmp = []
-            response = Request.read(table_name='tasks',
-                                    select='id',
-                                    operator='_in',
-                                    returns=taskSchema.declared_fields.keys(),
-                                    condition=taskid_list)
-            for t in response['data']['tasks']:
-                tmp.append(deserialization(t))
+    def read_tasks(cls, select, where):
+        j2_template = cls.j2_env.from_string(query_conditional_read)
+        query = j2_template.render(table_name="tasks",
+                                   select=select,
+                                   operator="_in",
+                                   condition=where,
+                                   returns=taskSchema.declared_fields.keys())
+        response = cls.run_query(query)
+        tmp=[]
 
-            return tmp
-        else:
-            raise TypeError
+        for t in response['data']['tasks']:
+            tmp.append(deserialization(t))
+
+        return tmp
+
+        # tmp = []
+        # response = cls.read(table_name='tasks',
+        #                     select=select,
+        #                     operator='_in',
+        #                     returns=taskSchema.declared_fields.keys(),
+        #                     condition=where)
+        # print(response)
+        # for t in response['data']['tasks']:
+        #     tmp.append(deserialization(t))
+        #
+        # return tmp
+    # else:
+    #     raise TypeError
 
     @classmethod
     def insert(cls, table_name: str, inserts: dict):
         j2_template = cls.j2_env.from_string(query_insert)
         query = j2_template.render(table_name=table_name, inserts=inserts)
         return cls.run_query(query)
+
+    @classmethod
+    def insert_task(cls, task):
+        response = cls.insert(table_name="tasks", inserts=_serilize(task))
+        return response['data']['insert_tasks']['returning'][0]['id']
+
+    @classmethod
+    def update_task(cls, task):
+        response = Request.updates(table_name="tasks", id=task.id, patches=_serilize(task))
+        return response['data']['update_tasks']['returning'][0]['id']
+
 
     # @classmethod
     # def get_submitable(cls, tasks_to_track=1):
@@ -134,3 +157,20 @@ class Request:
 #     @classmethod
 #     def read(cls, task_id):
 #          return super().read(table_name="tasks", select="id", condition=str(task_id), returns=list(attr.fields_dict(Task).keys()))
+
+
+def _to_graphql_style_array(l: list) -> str:
+    return "{" + ",".join(str(i) for i in l) + "}"
+
+
+def _serilize(task: Task):
+    result = dict()
+    task_dict = attr.asdict(task)
+    for k,v in task_dict.items():
+        if v is None:
+            continue
+        if isinstance(v, list):
+            result[k] = _to_graphql_style_array(v)
+        else:
+            result[k] = v
+    return result
