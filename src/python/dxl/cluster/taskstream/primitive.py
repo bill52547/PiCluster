@@ -59,15 +59,10 @@ class Query(Request):
 
     @classmethod
     def from_resource(cls, resource: Resource) -> func:
-        # print(f"DEBUG Query.from_resource {resource}: {Request.read(table_name=resource.table_name, select='id',condition=str(resource.primary_key),returns=resource.returns)}")
         return rx.of(Request.read(table_name="resources",
                                   select='id',
                                   condition=str(resource.id),
                                   returns=["urls"]))
-
-
-# class Table(Generic[T]):
-#     name: str
 
 
 def task(t: Task) -> func:
@@ -131,8 +126,6 @@ def submit(task: Task, backend: "Scheduler"=SlurmSjtu, track_in_db=False) -> "Ob
                             id_on_backend=id_on_backend,
                             state=TaskState.Running,
                             state_on_backend=TaskState.Running)
-            #TODO
-            # insert_or_update_task(t)
             obs.on_next(t)
             obs.on_completed()
             return
@@ -150,18 +143,14 @@ def submit(task: Task, backend: "Scheduler"=SlurmSjtu, track_in_db=False) -> "Ob
     def _on_return(task):
         outputs = task.outputs
         work_dir = task.workdir
-        # print(f"DEBUG in primitive submit, task_workdir: {work_dir}, task_id_onSlurm: {task.id_on_backend}, task_outputs: {outputs}")
 
         def exists(item):
-            # print(f"DEBUG in primitive exists: item: {item}")
             item_path = Path(str(work_dir) + "/" + str(item))
-            # print(f"DEBUG in primitive exists: item_path: {item_path}")
             if item_path.is_dir() or item_path.is_file():
                 return True
             return False
 
         if len(outputs) > 0:
-            # print(f"DEBUG in primitive submit: outputs: {outputs}")
             if reduce(lambda x, y: x or y, list(map(exists, outputs))):
                 return list(map(lambda item: str(work_dir)+"/"+str(item), outputs))
             else:
