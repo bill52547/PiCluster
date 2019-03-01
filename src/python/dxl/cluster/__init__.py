@@ -1,7 +1,4 @@
-# from .cluster import submit_slurm
 from .interactive.web import Request
-from .interactive.base import Task, TaskInfo, Worker, State, Type
-from .backend.slurm import TaskSlurm 
 
 
 def submit_task(task):

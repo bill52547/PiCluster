@@ -1,0 +1,42 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: stateful-set-slurm-client
+spec:
+  serviceName: "sclient"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        slurm-app: sclient
+    spec:
+      containers:
+      - name: slurm-client
+        image: hub.tek-pi.com/env/slurm-client:latest
+        command: [ "/bin/bash", "-c" ]
+        args:
+        - /etc/profile.d/startup.sh;
+          while true; do
+          sleep 3600;
+          done;
+        volumeMounts:
+        - mountPath: /etc/slurm-llnl
+          name: slurm-config
+        - mountPath: /opt/spack
+          name: spack
+        - mountPath: /mnt/gluster
+          name: data
+      volumes:
+      - name: slurm-config
+        hostPath:
+          path: /mnt/gluster/k8s-pv/slurm-config
+          type: Directory
+      - name: spack
+        hostPath:
+          path: /mnt/nfs/spack
+          type: Directory
+      - name: data
+        hostPath:
+          path: /mnt/gluster
+          type: Directory
+

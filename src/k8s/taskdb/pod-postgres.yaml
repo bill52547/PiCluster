@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: taskdb
+  labels:
+    name: taskdb
+spec:
+  containers:
+  - image: postgres
+    name: taskdb
+    ports:
+      - containerPort: 5432

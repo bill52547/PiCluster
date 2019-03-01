@@ -1,43 +1,24 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, scoped_session
-import attr
-import typing
-
+from sqlalchemy.orm import sessionmaker
 import contextlib
-import yaml
+
+from ..config.base import DBConfig
 
 
-def load_config(fn='./config.yml'):
-    try:
-        with open(fn, 'r') as fin:
-            return yaml.load(fin)
-    except FileNotFoundError as e:
-        return {}
-
-
-def engine():
-    config = load_config()
-    user = config.get('user', 'postgres')
-    passwd = config.get('passwd', 'mysecretpassword')
-    database = config.get('database', 'postgres')
-    ip = config.get('ip', '127.0.0.1')
-    port = config.get('port', '8080')
-    return create_engine(f"postgresql://{user}:{passwd}@{ip}:{port}/{database}")
-
-
-def maker(eng):
-    return scoped_session(sessionmaker(eng))
-
-
-@attr.s
 class DataBase:
-    user: str = 'postgres'
-    passwd: str = 'mysecretpassword'
-    database: str = 'postgres'
-    ip: str = '127.0.0.1'
-    port: str = '8080'
-    maker: typing.Any = None
-    engine: typing.Any = None
+    def __init__(self,
+                 ip: str = DBConfig.DB_IP,
+                 user: str = DBConfig.DB_USER,
+                 passwd: str = DBConfig.DB_PASSWD,
+                 database: str = DBConfig.DB_NAME,
+                 port: str = DBConfig.DB_PORT):
+        self.user = user
+        self.passwd = passwd
+        self.database = database
+        self.ip = ip
+        self.port = port
+        self.maker = None
+        self.engine = None
 
     def get_or_create_engine(self):
         if self.engine is None:
@@ -46,7 +27,6 @@ class DataBase:
 
     def get_or_create_maker(self):
         if self.maker is None:
-            # self.maker = scoped_session(sessionmaker(self.get_or_create_engine()))
             self.maker = sessionmaker(self.get_or_create_engine())
         return self.maker
 
@@ -55,7 +35,6 @@ class DataBase:
         sess = self.get_or_create_maker()()
         try:
             yield sess
-            # sess.expunge_all()
         except Exception as e:
             sess.rollback()
             raise e
